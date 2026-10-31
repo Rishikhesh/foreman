@@ -20,6 +20,7 @@ export function formatEvent(e: FEvent): string {
     case "granted": return `${what} handed from ${who} to ${e.to?.label}${e.sha ? ` with ${e.sha}` : " (uncommitted)"}`
     case "expired": return `${who}'s lock on ${what} expired after being idle`
     case "left": return `${who} left`
+    case "revoked": return `${who}'s lock on ${what} was revoked`
   }
 }
 

@@ -17,7 +17,7 @@ function handOff(s: RepoState, key: LockKey, from: AgentRef, now: number, events
   const [next, ...rest] = s.queues[key] ?? []
   s.queues[key] = rest
   if (!next) return
-  s.locks[key] = { key, holder: next.agent, since: now, touched: now }
+  s.locks[key] = { key, holder: next.agent, since: now, touched: now, from, ...(commit && { commit }) }
   notify(s, next.agent.id, commit ? { kind: "granted", key, from, commit } : { kind: "granted", key, from, uncommitted: true })
   events.push({ type: "granted", agent: from, key, to: next.agent, ...(commit && { sha: commit.sha }) })
 }
@@ -123,4 +123,15 @@ export function joinRoom(s0: RepoState, person: Person): Result<{ ok: true } | {
   s.people[person.name] = person
   const events: FEvent[] = isNew ? [{ type: "joined", agent: { id: `person:${person.name}`, label: person.name, color: person.color } }] : []
   return { state: s, events, value: { ok: true } }
+}
+
+/** A person frees a lock from the editor; the holder is told and the next waiter gets it. */
+export function revoke(s0: RepoState, key: LockKey, now: number): Result<{ revoked: boolean }> {
+  const lock = s0.locks[key]
+  if (!lock) return { state: s0, events: [], value: { revoked: false } }
+  const s = structuredClone(s0)
+  const events: FEvent[] = [{ type: "revoked", agent: lock.holder, key }]
+  notify(s, lock.holder.id, { kind: "revoked", key })
+  handOff(s, key, lock.holder, now, events)
+  return { state: s, events, value: { revoked: true } }
 }

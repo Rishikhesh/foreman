@@ -16,6 +16,7 @@ const routes: Record<string, (b: Body) => Promise<{ value: unknown; events?: FEv
   "/api/release-all": b => repo(b).releaseAll(b.agent),
   "/api/touch": b => repo(b).touch(b.agent, b.file, b.line ?? null, b.mode),
   "/api/join": b => repo(b).join(b.person),
+  "/api/revoke": b => repo(b).revoke(b.key),
   "/api/notices": b => repo(b).takeNotices(b.agentId),
   "/api/waiting": async b => ({ value: { waiting: await repo(b).isWaiting(b.agentId) } }),
   "/api/status": async b => ({ value: await repo(b).status() }),
@@ -30,6 +31,13 @@ export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), o
     async fetch(req) {
       const { pathname } = new URL(req.url)
       if (pathname === "/api/health") return new Response("ok")
+      if (pathname === "/grant") {
+        const actorId = new URL(req.url).searchParams.get("repo")
+        if (!actorId) return new Response("repo required", { status: 400 })
+        // ponytail: anyone who can reach the server can watch a room; add a room key check before hosting publicly
+        const { websocketUrl } = await actors.RepoActor.prepareWebsocket({ actorId, metadata: {} })
+        return Response.json({ websocketUrl })
+      }
       const route = routes[pathname]
       if (!route || req.method !== "POST") return new Response("not found", { status: 404 })
       let body: Body

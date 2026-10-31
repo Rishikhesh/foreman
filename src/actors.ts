@@ -34,6 +34,9 @@ export class RepoActor extends Actor<Record<string, never>, never, Out> {
   async join(person: Person) {
     return this.#apply(core.joinRoom(this.state, person))
   }
+  async revoke(key: LockKey) {
+    return this.#apply(core.revoke(this.state, key, Date.now()))
+  }
   async takeNotices(agentId: AgentId) {
     return this.#apply(core.takeNotices(this.state, agentId, Date.now()))
   }

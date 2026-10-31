@@ -80,6 +80,8 @@ export function renderNotice(n: Notice): string {
         : `${describe(n.key)} is yours now. ${n.from?.label ?? "Its holder"} left without committing; its changes are not in any commit.`
     case "expired":
       return `Your lock on ${describe(n.key)} expired. It will be re-taken on your next edit if free.`
+    case "revoked":
+      return `Your lock on ${describe(n.key)} was revoked by a teammate. Stop editing it; it will be re-taken on your next edit if free.`
   }
 }
 

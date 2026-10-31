@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { claim, emptyState, expire, isWaiting, joinRoom, releaseAll, releaseFiles, takeNotices, touch, TTL_MS } from "./locks.js"
+import { claim, emptyState, expire, isWaiting, joinRoom, releaseAll, releaseFiles, revoke, takeNotices, touch, TTL_MS } from "./locks.js"
 import type { AgentRef } from "./types.js"
 
 const A: AgentRef = { id: "claude:a", label: "claude@rishi" }
@@ -146,4 +146,22 @@ test("checking the mailbox (after any tool, e.g. Bash) also counts as activity",
   let s = claim(emptyState(), A, [V], 0).state
   s = takeNotices(s, A.id, TTL_MS - 1).state
   expect(expire(s, TTL_MS + 1).value.expired).toEqual([])
+})
+
+test("revoke frees a lock, tells the holder, and hands it to the next waiter", () => {
+  let s = claim(emptyState(), A, [V], 1).state
+  s = claim(s, B, [V], 2).state
+  const r = revoke(s, V, 3)
+  expect(r.value).toEqual({ revoked: true })
+  expect(r.state.outbox[A.id]).toContainEqual({ kind: "revoked", key: V })
+  expect(r.state.locks[V].holder.id).toBe("claude:b")
+  expect(r.events[0]).toEqual({ type: "revoked", agent: A, key: V })
+  expect(revoke(r.state, "nope#x", 4).value).toEqual({ revoked: false })
+})
+
+test("a handed-off lock remembers who it came from and the commit", () => {
+  let s = claim(emptyState(), A, [V], 1).state
+  s = claim(s, B, [V], 2).state
+  s = releaseFiles(s, A, ["src/auth.ts"], 3, commit).state
+  expect(s.locks[V]).toMatchObject({ holder: B, from: A, commit })
 })

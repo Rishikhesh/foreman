@@ -70,3 +70,20 @@ test("a slow Relay never delays the agents: events are posted in the background,
   expect(order).toEqual(["claimed", "claimed"])
   slow.stop()
 })
+
+test("grant gives a live socket that streams the room state; revoke frees a lock", async () => {
+  const room = `test-${crypto.randomUUID().slice(0, 8)}`
+  await post("/api/claim", { repoId: room, agent: A, keys: [V] })
+  const { websocketUrl } = await (await fetch(new URL(`/grant?repo=${room}`, server.url))).json()
+  const ws = new WebSocket(websocketUrl)
+  const first = await new Promise<any>((res, rej) => {
+    ws.onmessage = e => res(JSON.parse(String(e.data)))
+    ws.onerror = rej
+  })
+  expect(first.type).toBe("state")
+  expect(first.state.state.locks[V].holder.id).toBe(A.id)
+  const update = new Promise<any>(res => (ws.onmessage = e => { const m = JSON.parse(String(e.data)); if (m.type === "state_update") res(m) }))
+  expect(await post("/api/revoke", { repoId: room, key: V })).toEqual({ revoked: true })
+  expect((await update).changes.state.locks).toEqual({})
+  ws.close()
+})
