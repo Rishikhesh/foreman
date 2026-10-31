@@ -186,6 +186,14 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     console.log(`\nJoined. Open this folder in VS Code (Foreman sidebar) and start Claude Code here.`)
   },
 
+  async invite(args) {
+    const root = await requireRepo(process.cwd())
+    const cfg = await g.readConfig(root)
+    if (!cfg.repoId || !cfg.url) throw new UserError("Not in a room yet. Run `foreman init` first.")
+    const url = (flag(args, "--url") ?? cfg.url).replace(/\/$/, "")
+    console.log(`Send this to your teammate privately:\n\n  foreman join ${encodeInvite({ url, repoId: cfg.repoId })}`)
+  },
+
   async leave() {
     const root = await requireRepo(process.cwd())
     const settingsFile = path.join(root, ".claude", "settings.local.json")

@@ -123,3 +123,14 @@ test("removeHooks drops only Foreman's entries", () => {
   const merged = mergeHooks({ hooks: { Stop: [{ hooks: [{ type: "command", command: "mine" }] }] } }, "/x/foreman.ts")
   expect(removeHooks(merged)).toEqual({ hooks: { Stop: [{ hooks: [{ type: "command", command: "mine" }] }] } })
 })
+
+test("invite prints a join command for this room, optionally with a public server address", async () => {
+  const host = await clone("git@github.com:org/invite.git")
+  await run(["init", "--url", stub.url.href.replace(/\/$/, ""), "--color", "teal"], host)
+  const pub = await run(["invite", "--url", "https://abc.trycloudflare.com"], host)
+  expect(pub.code).toBe(0)
+  const code = pub.stdout.match(/foreman join (fm_\S+)/)![1]
+  expect(decodeInvite(code).url).toBe("https://abc.trycloudflare.com")
+  const same = await run(["invite"], host)
+  expect(decodeInvite(same.stdout.match(/(fm_\S+)/)![1]).url).toBe(stub.url.href.replace(/\/$/, ""))
+})
