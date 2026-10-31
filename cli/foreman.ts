@@ -2,7 +2,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import type { AgentRef, Blocked, Notice, RepoState } from "../src/core/types.js"
-import { fileOf } from "../src/core/locks.js"
+import { changedLines, keysForLines } from "../src/core/symbols.js"
 import * as g from "./git.js"
 import { COLORS, decodeInvite, encodeInvite, gitHookScript, mergeHooks } from "./onboard.js"
 import { agentFor, contextOutput, denyOutput, describe, editPlan, renderDeny, renderNotice, stopDecision } from "./hook.js"
@@ -131,7 +131,15 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     const staged = await g.stagedFiles(cwd)
     const { url, repoId } = await ctx(cwd)
     const s = await call<RepoState>(url, "/api/status", { repoId })
-    const clash = Object.entries(s.locks ?? {}).filter(([key, l]) => staged.includes(fileOf(key)) && l.holder.id !== me?.id)
+    const touched = new Set<string>()
+    for (const file of staged) {
+      const { diff, source } = await g.stagedChange(cwd, file)
+      const keys = source === null ? [`${file}#<file>`] : keysForLines(file, source, changedLines(diff))
+      keys.forEach(k => touched.add(k))
+      // a whole-file lock covers every function in it
+      touched.add(`${file}#<file>`)
+    }
+    const clash = Object.entries(s.locks ?? {}).filter(([key, l]) => touched.has(key) && l.holder.id !== me?.id)
     if (!clash.length) return
     for (const [key, l] of clash) console.error(`foreman: ${describe(key)} is locked by ${l.holder.label}`)
     console.error("foreman: commit refused. Wait for the handoff, or set FOREMAN_FORCE=1.")
@@ -145,7 +153,7 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     const repoId = await g.repoId(root)
     await enter(root, url, repoId, args)
     const code = encodeInvite({ url, repoId })
-    console.log(`\nRoom ready. Send this to your teammate privately:\n\n  foreman join ${code}\n\nBoard: ${url}/board?repo=${repoId}`)
+    console.log(`\nRoom ready. Send this to your teammate privately:\n\n  foreman join ${code}\n\nOpen this folder in VS Code to see the room in the Foreman sidebar.`)
   },
 
   async join(args) {
@@ -157,7 +165,7 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
       return 1
     }
     await enter(root, url, repoId, args.slice(1))
-    console.log(`\nJoined. Open Claude Code here and your agent appears on the board: ${url}/board?repo=${repoId}`)
+    console.log(`\nJoined. Open this folder in VS Code (Foreman sidebar) and start Claude Code here.`)
   },
 
   async status() {

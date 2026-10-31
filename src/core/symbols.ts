@@ -79,3 +79,28 @@ export function signatureChanges(file: string, before: string, after: string): s
   const b = sigs(after)
   return [...a].filter(([name, params]) => b.get(name) !== params).map(([name]) => name)
 }
+
+/** New-side line numbers touched by a `git diff -U0` (a pure deletion counts as touching the line it sat before). */
+export function changedLines(diff: string): number[] {
+  const out: number[] = []
+  for (const m of diff.matchAll(/^@@ -\S+ \+(\d+)(?:,(\d+))? @@/gm)) {
+    const start = Number(m[1])
+    const count = m[2] === undefined ? 1 : Number(m[2])
+    if (count === 0) out.push(Math.max(1, start))
+    for (let i = 0; i < count; i++) out.push(start + i)
+  }
+  return out
+}
+
+/** Lock keys for a set of changed lines in `source`: the enclosing functions, or the top slot for lines outside any. */
+export function keysForLines(file: string, source: string, lines: number[]): LockKey[] {
+  if (!isCode(file)) return [`${file}#<file>`]
+  const fns = functionsIn(file, source)
+  const keys = new Set<LockKey>()
+  for (const l of lines) {
+    const fn = fns.find(f => f.start <= l && l <= f.end)
+    keys.add(fn ? `${file}#${fn.name}` : `${file}#<top>`)
+  }
+  const order = (k: LockKey) => (k.endsWith("#<top>") ? -1 : fns.findIndex(f => k === `${file}#${f.name}`))
+  return [...keys].sort((a, b) => order(a) - order(b))
+}

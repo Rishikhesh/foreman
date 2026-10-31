@@ -65,3 +65,11 @@ export function statusText(state: RepoState | null): string {
   if (!state) return "$(circle-slash) Foreman · offline"
   return `$(organization) Foreman · ${Object.keys(state.members).length} agents · ${Object.keys(state.locks).length} locks`
 }
+
+/** The real git dir for a checkout: `.git` is a folder in a clone but a `gitdir:` pointer file in a worktree. */
+export function gitDirOf(root: string, isFile: (p: string) => boolean, read: (p: string) => string): string {
+  const dotGit = `${root}/.git`
+  if (!isFile(dotGit)) return dotGit
+  const target = read(dotGit).replace(/^gitdir:\s*/, "").trim()
+  return target.startsWith("/") ? target : `${root}/${target}`
+}

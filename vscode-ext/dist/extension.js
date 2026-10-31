@@ -168888,6 +168888,13 @@ function statusText(state) {
     return "$(circle-slash) Foreman · offline";
   return `$(organization) Foreman · ${Object.keys(state.members).length} agents · ${Object.keys(state.locks).length} locks`;
 }
+function gitDirOf(root, isFile, read) {
+  const dotGit = `${root}/.git`;
+  if (!isFile(dotGit))
+    return dotGit;
+  const target = read(dotGit).replace(/^gitdir:\s*/, "").trim();
+  return target.startsWith("/") ? target : `${root}/${target}`;
+}
 
 // vscode-ext/src/extension.ts
 var state = null;
@@ -168896,7 +168903,8 @@ var root = "";
 var cli = "";
 var changed = new vscode.EventEmitter;
 function readConfig() {
-  const f = import_node_path.default.join(root, ".git", "foreman.json");
+  const gitDir = gitDirOf(root, (p) => import_node_fs.existsSync(p) && import_node_fs.statSync(p).isFile(), (p) => import_node_fs.readFileSync(p, "utf8"));
+  const f = import_node_path.default.join(gitDir, "foreman.json");
   if (!import_node_fs.existsSync(f))
     return null;
   const c = JSON.parse(import_node_fs.readFileSync(f, "utf8"));

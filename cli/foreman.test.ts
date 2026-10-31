@@ -112,3 +112,14 @@ test("pre-commit refuses staged files locked by another agent", async () => {
   expect(await r.exited).toBe(1)
   expect(await new Response(r.stderr).text()).toContain("validateToken in auth.ts is locked by claude@friend")
 })
+
+test("pre-commit allows a commit that only touches functions nobody else holds, even in a shared file", async () => {
+  const dir = await repo()
+  writeFileSync(path.join(dir, "auth.ts"), "export function validateToken(t: string) {\n  return t\n}\n\nexport function refresh(id: string) {\n  return id\n}\n")
+  await $`git -C ${dir} add -A && git -C ${dir} commit -qm base --no-verify`.quiet()
+  await out(run(["hook", "pre-tool"], edit(dir), dir))
+  reply["/api/status"] = { locks: { "auth.ts#refresh": { holder: { id: "claude:x", label: "claude@friend" } } } }
+  writeFileSync(path.join(dir, "auth.ts"), "export function validateToken(t: string) {\n  return t.trim()\n}\n\nexport function refresh(id: string) {\n  return id\n}\n")
+  await $`git -C ${dir} add -A`.quiet()
+  expect(await run(["git", "pre-commit"], "", dir).exited).toBe(0)
+})

@@ -54,3 +54,10 @@ export const pushCommit = async (cwd: string, sha: string) => (await git(cwd, "p
 export const stagedFiles = async (cwd: string) => (await text(cwd, "diff", "--cached", "--name-only")).split("\n").filter(Boolean)
 
 export const hooksDir = async (cwd: string) => path.resolve(cwd, await text(cwd, "rev-parse", "--git-path", "hooks"))
+
+/** Staged diff (zero context) and staged content of one file; content is null for a deleted file. */
+export async function stagedChange(cwd: string, file: string): Promise<{ diff: string; source: string | null }> {
+  const diff = await text(cwd, "diff", "--cached", "-U0", "--", file)
+  const shown = await git(cwd, "show", `:${file}`)
+  return { diff, source: shown.exitCode === 0 ? shown.stdout.toString() : null }
+}

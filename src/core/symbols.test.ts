@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { functionsIn, keysForEdit, keysForWrite, signatureChanges } from "./symbols.js"
+import { changedLines, functionsIn, keysForEdit, keysForLines, keysForWrite, signatureChanges } from "./symbols.js"
 
 const SRC = `import { db } from "./db.js"
 import { verify } from "./jwt.js"
@@ -76,4 +76,15 @@ test("signatureChanges reports renamed or re-parameterised functions, not body e
   expect(signatureChanges("src/auth.ts", SRC, renamed)).toEqual(["validateToken"])
   const params = SRC.replace("validateToken(t: string)", "validateToken(t: string, now: number)")
   expect(signatureChanges("src/auth.ts", SRC, params)).toEqual(["validateToken"])
+})
+
+test("changedLines reads new-side line numbers from a zero-context diff", () => {
+  const diff = "diff --git a/x b/x\n@@ -5 +5,2 @@ fn\n-a\n+b\n+c\n@@ -12,3 +13,0 @@\n-x\n@@ -20 +21 @@\n-q\n+r\n"
+  expect(changedLines(diff)).toEqual([5, 6, 13, 21])
+})
+
+test("keysForLines maps changed lines to the functions (or top slot) they fall in", () => {
+  expect(keysForLines("src/auth.ts", SRC, [5])).toEqual(["src/auth.ts#validateToken"])
+  expect(keysForLines("src/auth.ts", SRC, [1, 10, 15])).toEqual(["src/auth.ts#<top>", "src/auth.ts#refreshSession", "src/auth.ts#AuthService.login"])
+  expect(keysForLines("README.md", "x", [1])).toEqual(["README.md#<file>"])
 })

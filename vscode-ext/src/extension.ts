@@ -1,11 +1,11 @@
 import { execFile } from "node:child_process"
-import { existsSync, readFileSync, realpathSync } from "node:fs"
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs"
 import path from "node:path"
 import * as vscode from "vscode"
 import { decodeInvite, encodeInvite } from "../../cli/onboard.js"
 import { functionsIn } from "../../src/core/symbols.js"
 import type { AgentRef, RepoState } from "../../src/core/types.js"
-import { COLOR_HEX, cursorsInFile, freeColors, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
+import { COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
 
 interface Config { url: string; repoId: string; name: string; color: string }
 
@@ -16,7 +16,8 @@ let cli = ""
 const changed = new vscode.EventEmitter<void>()
 
 function readConfig(): Config | null {
-  const f = path.join(root, ".git", "foreman.json")
+  const gitDir = gitDirOf(root, p => existsSync(p) && statSync(p).isFile(), p => readFileSync(p, "utf8"))
+  const f = path.join(gitDir, "foreman.json")
   if (!existsSync(f)) return null
   const c = JSON.parse(readFileSync(f, "utf8"))
   const override = vscode.workspace.getConfiguration("foreman").get<string>("serverUrl")

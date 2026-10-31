@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { emptyState } from "../../src/core/locks.js"
 import type { AgentRef, RepoState } from "../../src/core/types.js"
-import { COLOR_HEX, cursorsInFile, freeColors, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
+import { COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
 
 const A: AgentRef = { id: "claude:a", label: "claude@rishi", color: "blue" }
 const B: AgentRef = { id: "claude:b", label: "claude@friend", color: "orange" }
@@ -76,4 +76,11 @@ test("statusText", () => {
   const s = withLocks({ "a.ts#f": {}, "a.ts#g": {} })
   s.members = { [A.id]: A, [B.id]: B }
   expect(statusText(s)).toBe("$(organization) Foreman · 2 agents · 2 locks")
+})
+
+test("gitDirOf follows a worktree's .git file to its real git dir", () => {
+  const files: Record<string, string> = { "/w/friend/.git": "gitdir: /w/main/.git/worktrees/friend\n" }
+  const isFile = (p: string) => p in files
+  expect(gitDirOf("/w/friend", isFile, p => files[p])).toBe("/w/main/.git/worktrees/friend")
+  expect(gitDirOf("/w/main", isFile, p => files[p])).toBe("/w/main/.git")
 })
