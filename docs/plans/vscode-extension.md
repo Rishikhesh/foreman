@@ -75,10 +75,19 @@ A webview that loads the web board's `/board?repo=` page.
 
 Then do a manual check in the Extension Development Host. Two windows on two clones; one Claude edits `validateToken`, and the other window shows the stripe, the CodeLens and the cursor within about a second.
 
-## Local dev and install
-- Run: `code --extensionDevelopmentPath=$PWD/vscode-ext`
-- Package: `npx @vscode/vsce package` → `foreman-*.vsix`
-- Install on the other laptop: `code --install-extension foreman-*.vsix`
+## Local dev and install: no build, no `.vsix`
+Teammates get updates with `git pull` plus **Developer: Reload Window**. Nothing is packaged or sent around.
+
+- **The extension runs straight from the repo folder.** Write it as plain JavaScript (ES modules are fine in recent VS Code; otherwise CommonJS), with JSDoc types. There is no compile step, and `package.json` `main` points at the `.js` file.
+  - If it must be TypeScript, commit the built `dist/` instead. Plain JS is simpler.
+- **Zero npm dependencies.** Use VS Code's built-in global `WebSocket` and `fetch` (VS Code ships Node 22). Then there's no `node_modules` to install after pulling.
+- **One-time setup per laptop:** link the repo folder into VS Code's extensions folder. `foreman init` and `foreman join` do this automatically:
+  `ln -sfn "$PWD/vscode-ext" ~/.vscode/extensions/foreman.foreman-dev`
+  - Use `~/.cursor/extensions` for Cursor.
+  - Restart VS Code once after creating the link.
+- **After that:** `git pull`, then Command Palette → **Developer: Reload Window**, and the new extension code is live. Add a `foreman.reload` command that runs `git pull` and then reloads.
+- **While developing it yourself:** `code --extensionDevelopmentPath=$PWD/vscode-ext`.
+- The pure functions in `vscode-ext/src/view.js` are still tested with `bun test` (JS test files).
 
 ## Not in scope
 - Editing or claiming locks from the editor (the hooks own that)
