@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
-import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import type { AgentRef, Blocked, Notice, RepoState } from "../src/core/types.js"
 import { changedLines, keysForLines } from "../src/core/symbols.js"
 import * as g from "./git.js"
-import { COLORS, decodeInvite, encodeInvite, gitHookScript, mergeHooks } from "./onboard.js"
+import { COLORS, decodeInvite, encodeInvite, gitHookScript, mergeHooks, removeHooks } from "./onboard.js"
 import { agentFor, contextOutput, denyOutput, describe, editPlan, renderDeny, renderNotice, stopDecision } from "./hook.js"
 
 const CLI_TIMEOUT_MS = 2000
@@ -166,6 +166,19 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     }
     await enter(root, url, repoId, args.slice(1))
     console.log(`\nJoined. Open this folder in VS Code (Foreman sidebar) and start Claude Code here.`)
+  },
+
+  async leave() {
+    const root = await requireRepo(process.cwd())
+    const settingsFile = path.join(root, ".claude", "settings.local.json")
+    if (existsSync(settingsFile)) writeFileSync(settingsFile, JSON.stringify(removeHooks(JSON.parse(readFileSync(settingsFile, "utf8"))), null, 2))
+    const hooksDir = await g.hooksDir(root)
+    for (const h of ["post-commit", "pre-commit"]) {
+      const f = path.join(hooksDir, h)
+      if (existsSync(f) && readFileSync(f, "utf8").includes("installed by foreman")) rmSync(f)
+    }
+    rmSync(await g.configFile(root), { force: true })
+    console.log("Left the room. Foreman's hooks are removed from this checkout.")
   },
 
   async status() {

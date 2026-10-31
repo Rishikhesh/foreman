@@ -14,6 +14,18 @@ export function decodeInvite(code: string): Invite {
 
 type Settings = Record<string, any> & { hooks?: Record<string, any[]> }
 
+const isOurs = (entry: any) => entry.hooks?.some((h: any) => /foreman\.ts hook /.test(h.command ?? ""))
+
+/** Settings with Foreman's hooks taken out; empty events are dropped. */
+export function removeHooks(settings: Settings): Settings {
+  const hooks: Record<string, any[]> = {}
+  for (const [event, entries] of Object.entries(settings.hooks ?? {})) {
+    const kept = entries.filter(e => !isOurs(e))
+    if (kept.length) hooks[event] = kept
+  }
+  return { ...settings, hooks }
+}
+
 /** Claude Code settings with Foreman's hooks added once; the user's other settings and hooks are kept. */
 export function mergeHooks(settings: Settings, cli: string): Settings & { hooks: Record<string, any[]> } {
   const cmd = (sub: string) => `bun ${cli} hook ${sub}`
@@ -24,7 +36,6 @@ export function mergeHooks(settings: Settings, cli: string): Settings & { hooks:
     Stop: { hooks: [{ type: "command", command: cmd("stop"), timeout: 600 }] },
     SessionEnd: { hooks: [{ type: "command", command: cmd("session-end") }] },
   }
-  const isOurs = (entry: any) => entry.hooks?.some((h: any) => /foreman\.ts hook /.test(h.command ?? ""))
   const hooks: Record<string, any[]> = { ...settings.hooks }
   for (const [event, entry] of Object.entries(ours)) hooks[event] = [entry, ...(hooks[event] ?? []).filter(e => !isOurs(e))]
   return { ...settings, hooks }

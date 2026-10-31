@@ -16,6 +16,7 @@ export const userName = async (cwd: string) => (await text(cwd, "config", "user.
 const gitDir = async (cwd: string) => path.resolve(cwd, await text(cwd, "rev-parse", "--git-dir"))
 
 export interface Config { url?: string; repoId?: string; name?: string; color?: string }
+export const configFile = async (cwd: string) => path.join(await gitDir(cwd), "foreman.json")
 export async function readConfig(cwd: string): Promise<Config> {
   const f = path.join(await gitDir(cwd), "foreman.json")
   return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : {}

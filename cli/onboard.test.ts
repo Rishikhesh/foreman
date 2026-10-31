@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, statSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { $ } from "bun"
-import { COLORS, decodeInvite, encodeInvite, mergeHooks } from "./onboard.js"
+import { COLORS, decodeInvite, encodeInvite, mergeHooks, removeHooks } from "./onboard.js"
 
 const CLI = path.join(import.meta.dir, "foreman.ts")
 
@@ -101,4 +101,25 @@ test("init refuses a folder that is not a git repo", async () => {
   const r = await run(["init", "--url", stub.url.href], dir)
   expect(r.code).toBe(1)
   expect(r.stderr).toContain("Not a git repo")
+})
+
+test("leave removes Foreman's hooks and config but keeps the user's own hooks", async () => {
+  const host = await clone("git@github.com:org/leave.git")
+  await run(["init", "--url", stub.url.href.replace(/\/$/, ""), "--color", "green"], host)
+  const settingsFile = path.join(host, ".claude/settings.local.json")
+  const s = JSON.parse(readFileSync(settingsFile, "utf8"))
+  s.hooks.PreToolUse.push({ matcher: "Bash", hooks: [{ type: "command", command: "my-guard" }] })
+  await Bun.write(settingsFile, JSON.stringify(s))
+  const r = await run(["leave"], host)
+  expect(r.code).toBe(0)
+  const after = JSON.parse(readFileSync(settingsFile, "utf8"))
+  expect(after.hooks.PreToolUse).toEqual([{ matcher: "Bash", hooks: [{ type: "command", command: "my-guard" }] }])
+  expect(after.hooks.Stop).toBeUndefined()
+  expect(existsSync(path.join(host, ".git/hooks/post-commit"))).toBe(false)
+  expect(existsSync(path.join(host, ".git/foreman.json"))).toBe(false)
+})
+
+test("removeHooks drops only Foreman's entries", () => {
+  const merged = mergeHooks({ hooks: { Stop: [{ hooks: [{ type: "command", command: "mine" }] }] } }, "/x/foreman.ts")
+  expect(removeHooks(merged)).toEqual({ hooks: { Stop: [{ hooks: [{ type: "command", command: "mine" }] }] } })
 })
