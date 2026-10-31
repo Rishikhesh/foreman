@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import type { AgentRef, Blocked, Notice, RepoState } from "../src/core/types.js"
 import { callersOf, changedLines, keysForLines, signatureChanges } from "../src/core/symbols.js"
@@ -276,6 +277,24 @@ async function enter(root: string, url: string, repoId: string, args: string[]) 
     chmodSync(f, 0o755)
   }
   console.log(`You're ${name} (${color}). Hooks installed for Claude Code and git.`)
+  if (linkExtension(cli)) console.log("Foreman's VS Code extension is installed. Restart VS Code once to load it.")
+}
+
+/** Link this repo's VS Code extension into ~/.vscode/extensions (no packaging). Returns true when it was newly linked. */
+function linkExtension(cli: string): boolean {
+  const target = path.join(path.dirname(cli), "..", "vscode-ext")
+  const dir = path.join(process.env.HOME ?? os.homedir(), ".vscode", "extensions")
+  const link = path.join(dir, "foreman.foreman-dev")
+  try {
+    if (existsSync(link) && realpathSync(link) === realpathSync(target)) return false
+    mkdirSync(dir, { recursive: true })
+    rmSync(link, { force: true })
+    symlinkSync(realpathSync(target), link)
+    return true
+  } catch (e) {
+    console.error(`foreman: couldn't install the VS Code extension (${(e as Error).message}); link ${target} into ${dir} yourself.`)
+    return false
+  }
 }
 
 async function main() {

@@ -15,7 +15,7 @@
     "commands": [
       {
         "command": "foreman.createRoom",
-        "title": "Foreman: Create room"
+        "title": "Foreman: Start a room"
       },
       {
         "command": "foreman.joinRoom",
@@ -40,6 +40,11 @@
       {
         "command": "foreman.reload",
         "title": "Foreman: Update (git pull) and reload"
+      },
+      {
+        "command": "foreman.inviteTeammate",
+        "title": "Foreman: Invite teammate",
+        "icon": "$(person-add)"
       }
     ],
     "viewsContainers": {
@@ -62,7 +67,7 @@
     "viewsWelcome": [
       {
         "view": "foreman.room",
-        "contents": "Work on this repo together with your teammates' agents.\n[Create room](command:foreman.createRoom)\n[Join room](command:foreman.joinRoom)"
+        "contents": "Code together with your teammates' agents: live function locks, handoffs and caller warnings.\n[Start a room](command:foreman.createRoom)\nStarts the Foreman server and a public link on this laptop, then copies an invite for your teammate.\n[Join a room](command:foreman.joinRoom)\nPaste the invite a teammate sent you."
       }
     ],
     "menus": {
@@ -70,6 +75,13 @@
         {
           "command": "foreman.revoke",
           "when": "view == foreman.room && viewItem == lock"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "foreman.inviteTeammate",
+          "when": "view == foreman.room",
+          "group": "navigation"
         }
       ]
     },

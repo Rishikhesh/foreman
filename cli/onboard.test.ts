@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, expect, test } from "bun:test"
-import { existsSync, mkdtempSync, readFileSync, statSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, realpathSync, statSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { $ } from "bun"
@@ -133,4 +133,20 @@ test("invite prints a join command for this room, optionally with a public serve
   expect(decodeInvite(code).url).toBe("https://abc.trycloudflare.com")
   const same = await run(["invite"], host)
   expect(decodeInvite(same.stdout.match(/(fm_\S+)/)![1]).url).toBe(stub.url.href.replace(/\/$/, ""))
+})
+
+test("join links the VS Code extension into the user's editor", async () => {
+  const home = mkdtempSync(path.join(tmpdir(), "foreman-home-"))
+  const code = encodeInvite({ url: stub.url.href.replace(/\/$/, ""), repoId: "x" })
+  const friend = await clone("git@github.com:org/ext.git")
+  const realId = (await run(["invite"], friend)).code // not in a room yet → non-zero
+  expect(realId).toBe(1)
+  const host = await clone("git@github.com:org/ext.git")
+  const inv = (await run(["init", "--url", stub.url.href.replace(/\/$/, ""), "--color", "pink"], host)).stdout.match(/(fm_\S+)/)![1]
+  const p = Bun.spawn(["bun", CLI, "join", inv, "--name", "pal", "--color", "green"], { cwd: friend, stdout: "pipe", stderr: "pipe", env: { ...process.env, FOREMAN_URL: "", HOME: home } })
+  expect(await p.exited).toBe(0)
+  const link = path.join(home, ".vscode/extensions/foreman.foreman-dev")
+  expect(realpathSync(link)).toBe(realpathSync(path.join(import.meta.dir, "..", "vscode-ext")))
+  expect(await new Response(p.stdout).text()).toContain("Restart VS Code")
+  void code
 })

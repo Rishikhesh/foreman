@@ -6,3 +6,5 @@ generated
 .DS_Store
 .foreman-relay.json
 .demo/
+.foreman-logs/
+.foreman-tunnel.json

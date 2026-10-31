@@ -1,8 +1,10 @@
-import { execFile } from "node:child_process"
-import { existsSync, readFileSync, realpathSync, statSync } from "node:fs"
+import { execFile, spawn, spawnSync } from "node:child_process"
+import { existsSync, mkdirSync, openSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import * as vscode from "vscode"
 import { decodeInvite, encodeInvite } from "../../cli/onboard.js"
+import { shareUrl, teammateMessage, tunnelUrl } from "../../cli/share.js"
 import { functionsIn } from "../../src/core/symbols.js"
 import type { AgentRef, RepoState } from "../../src/core/types.js"
 import { callerWarnings, COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
@@ -153,7 +155,7 @@ const lenses: vscode.CodeLensProvider = {
 
 // ---------- sidebar ----------
 
-type Node = { label: string; description?: string; children?: Node[]; color?: string; lockKey?: string }
+type Node = { label: string; description?: string; children?: Node[]; color?: string; lockKey?: string; icon?: string; command?: string }
 
 const tree: vscode.TreeDataProvider<Node> = {
   onDidChangeTreeData: changed.event,
@@ -161,6 +163,8 @@ const tree: vscode.TreeDataProvider<Node> = {
     const item = new vscode.TreeItem(n.label, n.children ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None)
     item.description = n.description
     if (n.lockKey) item.contextValue = "lock"
+    if (n.icon) item.iconPath = new vscode.ThemeIcon(n.icon)
+    if (n.command) item.command = { command: n.command, title: n.label }
     if (n.color) item.iconPath = new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor(`charts.${n.color === "teal" ? "green" : n.color === "pink" ? "red" : n.color}`))
     return item
   },
@@ -181,6 +185,7 @@ const tree: vscode.TreeDataProvider<Node> = {
     }
     const hotNodes: Node[] = hot.map(h => ({ label: h.key.slice(h.key.lastIndexOf("#") + 1), description: `${h.key.slice(0, h.key.lastIndexOf("#"))} · waited on ${h.waits}×` }))
     return [
+      { label: "Invite teammate", description: "copies a message to send", icon: "person-add", command: "foreman.inviteTeammate" },
       { label: "People", children: people },
       ...(hotNodes.length ? [{ label: "Most fought-over", description: "consider splitting these", children: hotNodes }] : []),
       { label: "Locks", description: byFile.size ? "" : "none", children: [...byFile].map(([file, children]) => ({ label: file, children })) },
@@ -233,17 +238,112 @@ async function pickPerson(url: string, repoId: string) {
   return color ? { name, color } : undefined
 }
 
+// ---------- hosting: Terse + Foreman server + public tunnel, started on demand and left running ----------
+
+const LOCAL = "http://127.0.0.1:7300"
+const home = () => path.resolve(path.dirname(cli), "..")
+const toolPath = () => [process.env.PATH, "/opt/homebrew/bin", "/usr/local/bin", path.join(os.homedir(), ".bun", "bin")].join(":")
+const tunnelFile = () => path.join(home(), ".foreman-tunnel.json")
+
+async function reachable(url: string, healthPath = "/api/health") {
+  try {
+    await fetch(url + healthPath, { signal: AbortSignal.timeout(2000) })
+    return true
+  } catch {
+    return false
+  }
+}
+async function healthy(url: string) {
+  try {
+    return (await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(3000) })).ok
+  } catch {
+    return false
+  }
+}
+async function waitFor(check: () => Promise<boolean>, ms: number) {
+  for (const t0 = Date.now(); Date.now() - t0 < ms; await new Promise(r => setTimeout(r, 1000))) if (await check()) return true
+  return false
+}
+
+/** Start a long-running process that outlives this window; output goes to .foreman-logs/<name>.log. */
+function launch(name: string, cmd: string, args: string[]) {
+  const dir = path.join(home(), ".foreman-logs")
+  mkdirSync(dir, { recursive: true })
+  const log = path.join(dir, `${name}.log`)
+  const out = openSync(log, "w")
+  spawn(cmd, args, { cwd: home(), detached: true, stdio: ["ignore", out, out], env: { ...process.env, PATH: toolPath() } }).unref()
+  return log
+}
+
+async function ensureServer(progress: (m: string) => void) {
+  if (await healthy(LOCAL)) return
+  if (!(await reachable("http://127.0.0.1:7111", "/"))) {
+    progress("Starting Terse (durable actors)…")
+    launch("terse", "bun", ["run", "dev"])
+    if (!(await waitFor(() => reachable("http://127.0.0.1:7111", "/"), 120_000))) throw new Error("Terse didn't start; see .foreman-logs/terse.log")
+  }
+  progress("Starting the Foreman server…")
+  launch("server", "bun", ["src/server.ts"])
+  if (!(await waitFor(() => healthy(LOCAL), 60_000))) throw new Error("Foreman server didn't start; see .foreman-logs/server.log")
+}
+
+/** A public https address for the server: a Cloudflare quick tunnel, or the LAN address if cloudflared isn't installed. */
+async function ensurePublicUrl(progress: (m: string) => void): Promise<string> {
+  const saved = existsSync(tunnelFile()) ? JSON.parse(readFileSync(tunnelFile(), "utf8")).url : undefined
+  if (saved && (await healthy(saved))) return saved
+  const hasCloudflared = spawnSync("cloudflared", ["--version"], { env: { ...process.env, PATH: toolPath() } }).status === 0
+  if (!hasCloudflared) {
+    const lan = Object.values(os.networkInterfaces()).flat().find(i => i?.family === "IPv4" && !i.internal)?.address
+    const pick = await vscode.window.showWarningMessage(
+      "cloudflared isn't installed, so teammates outside your Wi-Fi can't reach you. Install it with `brew install cloudflared`, or share your Wi-Fi address for now.",
+      ...(lan ? [`Use Wi-Fi address (${lan})`] : []),
+    )
+    if (!pick || !lan) throw new Error("No public address for the room")
+    return `http://${lan}:7300`
+  }
+  progress("Opening a public Cloudflare tunnel…")
+  const log = launch("tunnel", "cloudflared", ["tunnel", "--no-autoupdate", "--url", "http://localhost:7300"])
+  let url: string | null = null
+  await waitFor(async () => !!(url = tunnelUrl(readFileSync(log, "utf8"))), 45_000)
+  if (!url || !(await waitFor(() => healthy(url!), 45_000))) throw new Error("The Cloudflare tunnel didn't come up; see .foreman-logs/tunnel.log")
+  writeFileSync(tunnelFile(), JSON.stringify({ url }))
+  return url
+}
+
+async function originUrl() {
+  return new Promise<string>(res => execFile("git", ["remote", "get-url", "origin"], { cwd: root }, (_e, out) => res(String(out).trim())))
+}
+
+async function inviteTeammate() {
+  config = readConfig()
+  if (!config) return vscode.window.showWarningMessage("Start or join a room first.")
+  const publicUrl = existsSync(tunnelFile()) ? JSON.parse(readFileSync(tunnelFile(), "utf8")).url : config.url
+  const origin = await originUrl()
+  const msg = teammateMessage({
+    host: config.name,
+    cloneUrl: origin ? shareUrl(origin) : "<your repo URL>",
+    invite: encodeInvite({ url: publicUrl, repoId: config.repoId }),
+    freeColors: state ? freeColors(state, "") : Object.keys(COLOR_HEX).filter(c => c !== config!.color),
+  })
+  await vscode.env.clipboard.writeText(msg)
+  const choice = await vscode.window.showInformationMessage(`Invite copied. Paste it to your teammate (it points at ${publicUrl}).`, "Show message")
+  if (choice) vscode.window.showTextDocument(await vscode.workspace.openTextDocument({ content: msg, language: "markdown" }))
+}
+
 async function createRoom() {
-  const url = await vscode.window.showInputBox({ prompt: "Foreman server URL (use your LAN IP so teammates can reach it)", value: "http://127.0.0.1:7300" })
-  if (!url) return
-  const who = await pickPerson(url, "")
+  if (!root) return vscode.window.showErrorMessage("Open your project folder first.")
+  const who = await pickPerson(LOCAL, "")
   if (!who) return
   try {
-    const out = await runCli(["init", "--url", url, "--name", who.name, "--color", who.color])
-    const code = out.match(/foreman join (fm_\S+)/)?.[1]
-    if (code) await vscode.env.clipboard.writeText(code)
-    vscode.window.showInformationMessage(`Room ready. Invite copied to your clipboard; send it to your teammate privately.`)
-    connect()
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Foreman", cancellable: false }, async p => {
+      const progress = (message: string) => p.report({ message })
+      await ensureServer(progress)
+      progress("Creating your room…")
+      await runCli(["init", "--url", LOCAL, "--name", who.name, "--color", who.color])
+      connect()
+      await ensurePublicUrl(progress)
+    })
+    await inviteTeammate()
   } catch (e) {
     vscode.window.showErrorMessage(`Foreman: ${(e as Error).message}`)
   }
@@ -289,6 +389,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider("foreman.room", tree),
     vscode.commands.registerCommand("foreman.createRoom", createRoom),
     vscode.commands.registerCommand("foreman.joinRoom", joinRoom),
+    vscode.commands.registerCommand("foreman.inviteTeammate", inviteTeammate),
     vscode.commands.registerCommand("foreman.copyInvite", async () => {
       if (!config) return vscode.window.showWarningMessage("Not in a room yet.")
       await vscode.env.clipboard.writeText(encodeInvite({ url: config.url, repoId: config.repoId }))
