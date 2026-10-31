@@ -28,3 +28,23 @@ export const historySink = (insert: (rows: Row[]) => Promise<void>) => async (re
     console.warn("history:", (e as Error).message)
   }
 }
+
+/** Supabase-backed history when SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set (table from supabase/schema.sql). */
+export function connectHistory() {
+  const url = process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return undefined
+  // lazy import keeps the server free of Supabase when history is off
+  const db = import("@supabase/supabase-js").then(m => m.createClient(url, key, { auth: { persistSession: false } }))
+  return {
+    sink: historySink(async rows => {
+      const { error } = await (await db).from("foreman_events").insert(rows)
+      if (error) throw new Error(error.message)
+    }),
+    hot: async (repoId: string) => {
+      const { data, error } = await (await db).from("foreman_events").select("key,type").eq("repo_id", repoId).eq("type", "blocked").limit(5000)
+      if (error) throw new Error(error.message)
+      return hotFunctions(data ?? [])
+    },
+  }
+}

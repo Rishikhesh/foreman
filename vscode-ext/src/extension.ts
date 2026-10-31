@@ -10,6 +10,7 @@ import { callerWarnings, COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensTex
 interface Config { url: string; repoId: string; name: string; color: string }
 
 let state: RepoState | null = null
+let hot: { key: string; waits: number }[] = []
 let config: Config | null = null
 let root = ""
 let cli = ""
@@ -178,8 +179,10 @@ const tree: vscode.TreeDataProvider<Node> = {
       const waiting = (state.queues[l.key] ?? []).map(w => w.agent.label)
       byFile.set(l.key.slice(0, i), [...(byFile.get(l.key.slice(0, i)) ?? []), { label: l.key.slice(i + 1), description: `${l.holder.label}${waiting.length ? ` · waiting: ${waiting.join(", ")}` : ""}`, color: l.holder.color, lockKey: l.key }])
     }
+    const hotNodes: Node[] = hot.map(h => ({ label: h.key.slice(h.key.lastIndexOf("#") + 1), description: `${h.key.slice(0, h.key.lastIndexOf("#"))} · waited on ${h.waits}×` }))
     return [
       { label: "People", children: people },
+      ...(hotNodes.length ? [{ label: "Most fought-over", description: "consider splitting these", children: hotNodes }] : []),
       { label: "Locks", description: byFile.size ? "" : "none", children: [...byFile].map(([file, children]) => ({ label: file, children })) },
     ]
   },
@@ -308,6 +311,15 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     { dispose: () => (socket?.close(), clearInterval(poll)) },
   )
+  const refreshHot = async () => {
+    if (!config) return
+    try {
+      hot = (await (await fetch(`${config.url}/api/hot`, { method: "POST", body: JSON.stringify({ repoId: config.repoId }) })).json()) as typeof hot
+      changed.fire()
+    } catch {}
+  }
+  const hotTimer = setInterval(refreshHot, 10_000)
+  context.subscriptions.push({ dispose: () => clearInterval(hotTimer) })
   // cursors fade after 30s without new events, so repaint periodically
   const fade = setInterval(redraw, 5000)
   context.subscriptions.push({ dispose: () => clearInterval(fade) })

@@ -94,3 +94,10 @@ test("signature route warns caller holders", async () => {
   await post("/api/signature", { repoId: room, agent: A, key: V, callers: ["src/login.ts#login"] })
   expect(await post("/api/notices", { repoId: room, agentId: B.id })).toEqual([{ kind: "signature", key: V, by: A, callers: ["src/login.ts#login"] }])
 })
+
+test("hot returns the most fought-over functions from history", async () => {
+  const s = startServer({ port: 0, hot: async repoId => (repoId === "r9" ? [{ key: V, waits: 3 }] : []) })
+  const res = await fetch(new URL("/api/hot", s.url), { method: "POST", body: JSON.stringify({ repoId: "r9" }) })
+  expect(await res.json()).toEqual([{ key: V, waits: 3 }])
+  s.stop()
+})

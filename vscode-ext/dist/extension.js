@@ -168913,6 +168913,7 @@ function callerWarnings(state, file, source) {
 
 // vscode-ext/src/extension.ts
 var state = null;
+var hot = [];
 var config = null;
 var root = "";
 var cli = "";
@@ -169073,8 +169074,10 @@ var tree = {
       const waiting = (state.queues[l.key] ?? []).map((w) => w.agent.label);
       byFile.set(l.key.slice(0, i), [...byFile.get(l.key.slice(0, i)) ?? [], { label: l.key.slice(i + 1), description: `${l.holder.label}${waiting.length ? ` · waiting: ${waiting.join(", ")}` : ""}`, color: l.holder.color, lockKey: l.key }]);
     }
+    const hotNodes = hot.map((h) => ({ label: h.key.slice(h.key.lastIndexOf("#") + 1), description: `${h.key.slice(0, h.key.lastIndexOf("#"))} · waited on ${h.waits}×` }));
     return [
       { label: "People", children: people },
+      ...hotNodes.length ? [{ label: "Most fought-over", description: "consider splitting these", children: hotNodes }] : [],
       { label: "Locks", description: byFile.size ? "" : "none", children: [...byFile].map(([file, children]) => ({ label: file, children })) }
     ];
   }
@@ -169181,6 +169184,16 @@ function activate(context) {
   }), vscode.commands.registerCommand("foreman.reload", () => {
     import_node_child_process.execFile("git", ["pull", "--ff-only"], { cwd: import_node_path.default.dirname(cli) }, () => vscode.commands.executeCommand("workbench.action.reloadWindow"));
   }), { dispose: () => (socket?.close(), clearInterval(poll)) });
+  const refreshHot = async () => {
+    if (!config)
+      return;
+    try {
+      hot = await (await fetch(`${config.url}/api/hot`, { method: "POST", body: JSON.stringify({ repoId: config.repoId }) })).json();
+      changed.fire();
+    } catch {}
+  };
+  const hotTimer = setInterval(refreshHot, 1e4);
+  context.subscriptions.push({ dispose: () => clearInterval(hotTimer) });
   const fade = setInterval(redraw, 5000);
   context.subscriptions.push({ dispose: () => clearInterval(fade) });
   changed.fire();

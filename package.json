@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@agent-relay/sdk": "15.0.1",
+    "@supabase/supabase-js": "^2.118.0",
     "durable-actors": "0.14.6",
     "typescript": "5.9",
     "zod": "^4.6.7"

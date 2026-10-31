@@ -5,6 +5,8 @@ export interface ServerOptions {
   port?: number
   /** Called after every call that produced events; Relay and history hang off this. */
   onEvents?: (repoId: string, events: FEvent[]) => Promise<void>
+  /** Most fought-over functions for a room, from history (Supabase). */
+  hot?: (repoId: string) => Promise<{ key: string; waits: number }[]>
 }
 
 type Body = Record<string, any>
@@ -23,7 +25,7 @@ const routes: Record<string, (b: Body) => Promise<{ value: unknown; events?: FEv
   "/api/status": async b => ({ value: await repo(b).status() }),
 }
 
-export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), onEvents }: ServerOptions = {}) {
+export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), onEvents, hot }: ServerOptions = {}) {
   // Relay is slow (seconds per post): deliver events in the background, one batch after another
   let outbox = Promise.resolve()
   return Bun.serve({
@@ -40,7 +42,7 @@ export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), o
         return Response.json({ websocketUrl })
       }
       const route = routes[pathname]
-      if (!route || req.method !== "POST") return new Response("not found", { status: 404 })
+      if ((!route && pathname !== "/api/hot") || req.method !== "POST") return new Response("not found", { status: 404 })
       let body: Body
       try {
         body = await req.json()
@@ -48,7 +50,8 @@ export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), o
         return new Response("bad json", { status: 400 })
       }
       if (!body.repoId) return new Response("repoId required", { status: 400 })
-      const { value, events = [] } = await route(body)
+      if (pathname === "/api/hot") return Response.json(hot ? await hot(String(body.repoId)).catch(() => []) : [])
+      const { value, events = [] } = await route!(body)
       if (events.length && onEvents) outbox = outbox.then(() => onEvents(String(body.repoId), events)).catch(e => console.warn("onEvents:", e))
       return Response.json(value)
     },
@@ -57,9 +60,12 @@ export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), o
 
 if (import.meta.main) {
   const { connectRelay, relaySink } = await import("./relay.js")
-  const onEvents = await connectRelay()
+  const { connectHistory } = await import("./history.js")
+  const relay = await connectRelay()
     .then(relaySink)
     .catch(e => (console.warn(`relay disabled: ${e.message}`), undefined))
-  const s = startServer({ onEvents })
-  console.log(`foreman server on ${s.url}${onEvents ? " (relay: #foreman)" : ""}`)
+  const history = connectHistory()
+  const sinks = [relay, history?.sink].filter(Boolean) as NonNullable<ServerOptions["onEvents"]>[]
+  const s = startServer({ onEvents: async (r, e) => void (await Promise.all(sinks.map(f => f(r, e)))), hot: history?.hot })
+  console.log(`foreman server on ${s.url}${relay ? " · relay #foreman" : ""}${history ? " · supabase history" : " · history off (set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)"}`)
 }
