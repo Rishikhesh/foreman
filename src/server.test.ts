@@ -53,3 +53,20 @@ test("join adds people to the room and refuses a taken colour", async () => {
   expect(await post("/api/join", { repoId: room, person: { name: "friend", color: "blue" } })).toEqual({ ok: false, taken: ["blue"] })
   expect((await post("/api/status", { repoId: room })).people.rishi.color).toBe("blue")
 })
+
+test("a slow Relay never delays the agents: events are posted in the background, in order", async () => {
+  const order: string[] = []
+  let release!: () => void
+  const gate = new Promise<void>(r => (release = r))
+  const slow = startServer({ port: 0, onEvents: async (_r, events) => { await gate; order.push(...events.map(e => e.type)) } })
+  const room = `test-${crypto.randomUUID().slice(0, 8)}`
+  const t0 = Date.now()
+  for (const keys of [["a.ts#f"], ["a.ts#g"]])
+    await fetch(new URL("/api/claim", slow.url), { method: "POST", body: JSON.stringify({ repoId: room, agent: A, keys }) })
+  expect(Date.now() - t0).toBeLessThan(2000)
+  expect(order).toEqual([])
+  release()
+  await Bun.sleep(50)
+  expect(order).toEqual(["claimed", "claimed"])
+  slow.stop()
+})

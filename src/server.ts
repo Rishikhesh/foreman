@@ -22,6 +22,8 @@ const routes: Record<string, (b: Body) => Promise<{ value: unknown; events?: FEv
 }
 
 export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), onEvents }: ServerOptions = {}) {
+  // Relay is slow (seconds per post): deliver events in the background, one batch after another
+  let outbox = Promise.resolve()
   return Bun.serve({
     port,
     hostname: "0.0.0.0",
@@ -38,13 +40,17 @@ export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), o
       }
       if (!body.repoId) return new Response("repoId required", { status: 400 })
       const { value, events = [] } = await route(body)
-      if (events.length && onEvents) await onEvents(String(body.repoId), events).catch(e => console.warn("onEvents:", e))
+      if (events.length && onEvents) outbox = outbox.then(() => onEvents(String(body.repoId), events)).catch(e => console.warn("onEvents:", e))
       return Response.json(value)
     },
   })
 }
 
 if (import.meta.main) {
-  const s = startServer()
-  console.log(`foreman server on ${s.url}`)
+  const { connectRelay, relaySink } = await import("./relay.js")
+  const onEvents = await connectRelay()
+    .then(relaySink)
+    .catch(e => (console.warn(`relay disabled: ${e.message}`), undefined))
+  const s = startServer({ onEvents })
+  console.log(`foreman server on ${s.url}${onEvents ? " (relay: #foreman)" : ""}`)
 }
