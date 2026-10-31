@@ -1,0 +1,24 @@
+{
+  "name": "foreman",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "foreman": "cli/foreman.ts"
+  },
+  "scripts": {
+    "dev": "durable-actors dev --port 7111",
+    "generate": "durable-actors generate",
+    "server": "bun server.ts",
+    "test": "bun test src cli"
+  },
+  "dependencies": {
+    "@agent-relay/sdk": "15.0.1",
+    "durable-actors": "0.14.6",
+    "typescript": "5.9",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "@types/node": "^26.6.6"
+  }
+}
