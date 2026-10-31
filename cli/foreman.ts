@@ -2,7 +2,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import type { AgentRef, Blocked, Notice, RepoState } from "../src/core/types.js"
-import { changedLines, keysForLines } from "../src/core/symbols.js"
+import { callersOf, changedLines, keysForLines, signatureChanges } from "../src/core/symbols.js"
 import * as g from "./git.js"
 import { COLORS, decodeInvite, encodeInvite, gitHookScript, mergeHooks, removeHooks } from "./onboard.js"
 import { agentFor, contextOutput, denyOutput, describe, editPlan, renderDeny, renderNotice, stopDecision } from "./hook.js"
@@ -73,12 +73,15 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     const agent = await hookAgent(root, input.session_id)
     await call(url, "/api/touch", { repoId, agent, file: plan.file, line: plan.line, mode: plan.mode })
     if (!plan.keys.length) return
+    const abs = path.join(root, plan.file)
+    await g.stashBefore(root, plan.file, existsSync(abs) ? readFileSync(abs, "utf8") : null)
     const r = await call<{ blocked: Blocked[] }>(url, "/api/claim", { repoId, agent, keys: plan.keys })
     if (r.blocked?.length) print(denyOutput(r.blocked.map(renderDeny).join("\n")))
   },
 
   async "hook post-tool"(_, stdin) {
     const input = stdin()
+    await reportSignatureChanges(input)
     const n = await notices(input.cwd, input.session_id)
     if (n.length) print(contextOutput("PostToolUse", n.map(renderNotice).join("\n")))
   },
@@ -192,6 +195,25 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
       console.log(`${describe(l.key)} — ${l.holder.label}${q.length ? `, waiting: ${q.join(", ")}` : ""}`)
     }
   },
+}
+
+/** After an edit: if a function's name or parameters changed, tell the room who calls it. */
+async function reportSignatureChanges(input: any) {
+  const raw = input.tool_input?.file_path
+  if (!["Edit", "MultiEdit", "Write"].includes(input.tool_name) || typeof raw !== "string") return
+  const root = await g.worktreeRoot(input.cwd)
+  if (!root) return
+  const absPath = real(path.resolve(input.cwd, raw))
+  const file = path.relative(real(root), absPath).split(path.sep).join("/")
+  const before = await g.takeBefore(root, file)
+  if (!before || !existsSync(absPath)) return
+  const changed = signatureChanges(file, before, readFileSync(absPath, "utf8"))
+  if (!changed.length) return
+  const sources = await g.codeSources(root)
+  const { url, repoId } = await ctx(root)
+  const agent = (await g.readAgent(root)) ?? agentFor(input.session_id, await g.userName(root))
+  for (const name of changed)
+    await call(url, "/api/signature", { repoId, agent, key: `${file}#${name}`, callers: callersOf(name.split(".").pop()!, sources) })
 }
 
 const flag = (args: string[], name: string) => {

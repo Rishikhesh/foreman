@@ -16,6 +16,7 @@ test("formatEvent writes one plain line per event", () => {
     { type: "granted", agent: A, key: V, to: B },
     { type: "expired", agent: A, key: V },
     { type: "left", agent: A },
+    { type: "signature", agent: A, key: V },
   ] as FEvent[]).map(formatEvent)
   expect(lines).toEqual([
     "friend joined the room (orange)",
@@ -26,6 +27,7 @@ test("formatEvent writes one plain line per event", () => {
     "validateToken in src/auth.ts handed from claude@rishi to claude@friend (uncommitted)",
     "claude@rishi's lock on validateToken in src/auth.ts expired after being idle",
     "claude@rishi left",
+    "claude@rishi changed the name or parameters of validateToken in src/auth.ts; callers were warned",
   ])
 })
 

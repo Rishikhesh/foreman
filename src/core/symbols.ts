@@ -104,3 +104,29 @@ export function keysForLines(file: string, source: string, lines: number[]): Loc
   const order = (k: LockKey) => (k.endsWith("#<top>") ? -1 : fns.findIndex(f => k === `${file}#${f.name}`))
   return [...keys].sort((a, b) => order(a) - order(b))
 }
+
+/** Lock keys of every function that calls `name` (as `name(…)` or `x.name(…)`), in file then line order. */
+export function callersOf(name: string, sources: Record<string, string>): LockKey[] {
+  const out: LockKey[] = []
+  for (const [file, source] of Object.entries(sources)) {
+    if (!isCode(file) || !source.includes(name)) continue
+    const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
+    const fns = functionsIn(file, source)
+    const hit = new Set<string>()
+    const visit = (n: ts.Node) => {
+      if (ts.isCallExpression(n)) {
+        const callee = n.expression
+        const called = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : ""
+        if (called === name) {
+          const line = sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1
+          const fn = fns.find(f => f.start <= line && line <= f.end)
+          if (fn && fn.name !== name && fn.name.split(".").pop() !== name) hit.add(fn.name)
+        }
+      }
+      ts.forEachChild(n, visit)
+    }
+    visit(sf)
+    for (const fn of fns) if (hit.has(fn.name)) out.push(`${file}#${fn.name}`)
+  }
+  return out
+}

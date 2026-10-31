@@ -62,3 +62,34 @@ export async function stagedChange(cwd: string, file: string): Promise<{ diff: s
   const shown = await git(cwd, "show", `:${file}`)
   return { diff, source: shown.exitCode === 0 ? shown.stdout.toString() : null }
 }
+
+const STASH = "foreman-before.json"
+/** Remember a file's content before an edit, so the post-edit hook can tell whether a signature changed. */
+export async function stashBefore(cwd: string, file: string, content: string | null) {
+  const f = path.join(await gitDir(cwd), STASH)
+  const all = existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : {}
+  all[file] = content
+  writeFileSync(f, JSON.stringify(all))
+}
+export async function takeBefore(cwd: string, file: string): Promise<string | null | undefined> {
+  const f = path.join(await gitDir(cwd), STASH)
+  if (!existsSync(f)) return undefined
+  const all = JSON.parse(readFileSync(f, "utf8"))
+  const v = all[file]
+  delete all[file]
+  writeFileSync(f, JSON.stringify(all))
+  return v
+}
+
+const CODE = /\.(ts|tsx|js|jsx|mts|cts|mjs|cjs)$/
+/** Contents of the repo's tracked code files (capped), for finding callers. */
+export async function codeSources(root: string, cap = 3000): Promise<Record<string, string>> {
+  const files = (await text(root, "ls-files", "--cached", "--others", "--exclude-standard")).split("\n").filter(f => CODE.test(f)).slice(0, cap)
+  const out: Record<string, string> = {}
+  for (const f of files) {
+    try {
+      out[f] = readFileSync(path.join(root, f), "utf8")
+    } catch {}
+  }
+  return out
+}

@@ -80,6 +80,10 @@ export function renderNotice(n: Notice): string {
         : `${describe(n.key)} is yours now. ${n.from?.label ?? "Its holder"} left without committing; its changes are not in any commit.`
     case "expired":
       return `Your lock on ${describe(n.key)} expired. It will be re-taken on your next edit if free.`
+    case "signature": {
+      const where = n.callers.map(k => k.slice(k.lastIndexOf("#") + 1) + " in " + k.slice(0, k.lastIndexOf("#"))).join(", ")
+      return `Watch out: ${n.by.label} changed the name or parameters of ${describe(n.key)}. You work on code that calls it (${where}); update those calls after pulling their commit.`
+    }
     case "revoked":
       return `Your lock on ${describe(n.key)} was revoked by a teammate. Stop editing it; it will be re-taken on your next edit if free.`
   }

@@ -3,7 +3,7 @@ import type { AgentId, AgentRef, Blocked, CommitInfo, FEvent, LockKey, Notice, P
 /** A lock is freed only after its holder has been completely idle (no hook activity at all) this long. */
 export const TTL_MS = 15 * 60_000
 
-export const emptyState = (): RepoState => ({ locks: {}, queues: {}, outbox: {}, seen: {}, members: {}, cursors: {}, people: {} })
+export const emptyState = (): RepoState => ({ locks: {}, queues: {}, outbox: {}, seen: {}, members: {}, cursors: {}, people: {}, changes: {} })
 
 export const fileOf = (key: LockKey) => key.slice(0, key.lastIndexOf("#"))
 
@@ -134,4 +134,22 @@ export function revoke(s0: RepoState, key: LockKey, now: number): Result<{ revok
   notify(s, lock.holder.id, { kind: "revoked", key })
   handOff(s, key, lock.holder, now, events)
   return { state: s, events, value: { revoked: true } }
+}
+
+const CHANGE_TTL_MS = 10 * 60_000
+
+/** `key` changed its name or parameters: warn whoever holds or has opened a caller, and remember it for the editors. */
+export function signatureChanged(s0: RepoState, agent: AgentRef, key: LockKey, callers: LockKey[], now: number): Result<null> {
+  const s = structuredClone(s0)
+  s.changes = Object.fromEntries(Object.entries(s.changes ?? {}).filter(([, c]) => now - c.at <= CHANGE_TTL_MS))
+  s.changes[key] = { by: agent, at: now, callers }
+  const affected = new Map<string, LockKey[]>()
+  const add = (id: string, k: LockKey) => id !== agent.id && affected.set(id, [...new Set([...(affected.get(id) ?? []), k])])
+  for (const k of callers) {
+    const holder = s.locks[k]?.holder.id
+    if (holder) add(holder, k)
+    for (const [id, files] of Object.entries(s.seen)) if (files.includes(fileOf(k))) add(id, k)
+  }
+  for (const [id, ks] of affected) notify(s, id, { kind: "signature", key, by: agent, callers: ks })
+  return { state: s, events: [{ type: "signature", agent, key }], value: null }
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { changedLines, functionsIn, keysForEdit, keysForLines, keysForWrite, signatureChanges } from "./symbols.js"
+import { callersOf, changedLines, functionsIn, keysForEdit, keysForLines, keysForWrite, signatureChanges } from "./symbols.js"
 
 const SRC = `import { db } from "./db.js"
 import { verify } from "./jwt.js"
@@ -87,4 +87,14 @@ test("keysForLines maps changed lines to the functions (or top slot) they fall i
   expect(keysForLines("src/auth.ts", SRC, [5])).toEqual(["src/auth.ts#validateToken"])
   expect(keysForLines("src/auth.ts", SRC, [1, 10, 15])).toEqual(["src/auth.ts#<top>", "src/auth.ts#refreshSession", "src/auth.ts#AuthService.login"])
   expect(keysForLines("README.md", "x", [1])).toEqual(["README.md#<file>"])
+})
+
+test("callersOf finds every function that calls a name, across files, excluding the function itself", () => {
+  const sources = {
+    "src/auth.ts": SRC,
+    "src/login.ts": `import { validateToken } from "./auth"\n\nexport function login(t: string) {\n  return auth.validateToken(t)\n}\n\nexport const logout = () => {\n  return null\n}\n`,
+    "README.md": "validateToken(x)",
+  }
+  expect(callersOf("validateToken", sources)).toEqual(["src/auth.ts#AuthService.login", "src/login.ts#login"])
+  expect(callersOf("nobodyCallsMe", sources)).toEqual([])
 })

@@ -52,12 +52,14 @@ test("deny and notice copy", () => {
     { kind: "granted", key: "src/auth.ts#validateToken", from: A, commit: { sha: "abc123", summary: "add expiry check", stat: "" } },
     { kind: "granted", key: "src/auth.ts#<top>", from: A, uncommitted: true },
     { kind: "expired", key: "src/auth.ts#validateToken" },
+    { kind: "signature", key: "src/auth.ts#validateToken", by: A, callers: ["src/login.ts#login"] },
   ]
   expect(notices.map(renderNotice)).toEqual([
     "Heads-up: claude@rishi locked validateToken in src/auth.ts, a file you have opened. Avoid editing it.",
     "validateToken in src/auth.ts is yours now. claude@rishi committed abc123: add expiry check. Before editing, run `git fetch origin refs/foreman/abc123 && git merge abc123`.",
     "the top of src/auth.ts is yours now. claude@rishi left without committing; its changes are not in any commit.",
     "Your lock on validateToken in src/auth.ts expired. It will be re-taken on your next edit if free.",
+    "Watch out: claude@rishi changed the name or parameters of validateToken in src/auth.ts. You work on code that calls it (login in src/login.ts); update those calls after pulling their commit.",
   ])
 })
 

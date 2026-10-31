@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { emptyState } from "../../src/core/locks.js"
 import type { AgentRef, RepoState } from "../../src/core/types.js"
-import { COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
+import { callerWarnings, COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
 
 const A: AgentRef = { id: "claude:a", label: "claude@rishi", color: "blue" }
 const B: AgentRef = { id: "claude:b", label: "claude@friend", color: "orange" }
@@ -83,4 +83,12 @@ test("gitDirOf follows a worktree's .git file to its real git dir", () => {
   const isFile = (p: string) => p in files
   expect(gitDirOf("/w/friend", isFile, p => files[p])).toBe("/w/main/.git/worktrees/friend")
   expect(gitDirOf("/w/main", isFile, p => files[p])).toBe("/w/main/.git")
+})
+
+test("callerWarnings marks functions in this file that call a recently changed function", () => {
+  const s: RepoState = { ...emptyState(), changes: { "src/auth.ts#validateToken": { by: A, at: 1000, callers: ["src/auth.ts#refreshSession", "src/login.ts#login"] } } }
+  expect(callerWarnings(s, "src/auth.ts", SRC)).toEqual([
+    { name: "refreshSession", start: 7, end: 9, message: "⚠ calls validateToken, changed by claude@rishi" },
+  ])
+  expect(callerWarnings(s, "src/other.ts", SRC)).toEqual([])
 })

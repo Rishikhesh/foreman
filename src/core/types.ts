@@ -10,6 +10,7 @@ export type Notice =
   | { kind: "granted"; key: LockKey; from?: AgentRef; commit?: CommitInfo; uncommitted?: boolean }
   | { kind: "expired"; key: LockKey }
   | { kind: "revoked"; key: LockKey }
+  | { kind: "signature"; key: LockKey; by: AgentRef; callers: LockKey[] }
 export interface Person { name: string; color: string }
 export interface Cursor { file: string; line?: number; mode: "read" | "edit"; at: number }
 export interface RepoState {
@@ -21,8 +22,10 @@ export interface RepoState {
   members: Record<AgentId, AgentRef>
   cursors: Record<AgentId, Cursor>
   people: Record<string, Person>
+  /** recent name/parameter changes, so editors can flag the callers */
+  changes: Record<LockKey, { by: AgentRef; at: number; callers: LockKey[] }>
 }
-export type EventType = "claimed" | "blocked" | "released" | "granted" | "expired" | "left" | "joined" | "revoked"
+export type EventType = "claimed" | "blocked" | "released" | "granted" | "expired" | "left" | "joined" | "revoked" | "signature"
 export interface FEvent { type: EventType; agent: AgentRef; key?: LockKey; to?: AgentRef; sha?: string }
 export interface Result<T> { state: RepoState; events: FEvent[]; value: T }
 export interface Blocked { key: LockKey; holder: AgentRef; task?: string; position: number }

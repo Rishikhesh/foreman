@@ -168833,6 +168833,7 @@ function functionsIn(file, source) {
 // src/core/locks.ts
 var TTL_MS = 15 * 60000;
 var fileOf = (key) => key.slice(0, key.lastIndexOf("#"));
+var CHANGE_TTL_MS = 10 * 60000;
 
 // vscode-ext/src/view.ts
 var COLOR_HEX = {
@@ -168895,6 +168896,19 @@ function gitDirOf(root, isFile, read) {
   const target = read(dotGit).replace(/^gitdir:\s*/, "").trim();
   return target.startsWith("/") ? target : `${root}/${target}`;
 }
+function callerWarnings(state, file, source) {
+  const fns = functionsIn(file, source);
+  const out = [];
+  for (const [key, c] of Object.entries(state.changes ?? {}))
+    for (const caller of c.callers) {
+      if (fileOf(caller) !== file)
+        continue;
+      const fn = fns.find((f) => `${file}#${f.name}` === caller);
+      if (fn)
+        out.push({ name: fn.name, start: fn.start, end: fn.end, message: `⚠ calls ${key.slice(key.lastIndexOf("#") + 1)}, changed by ${c.by.label}` });
+    }
+  return out;
+}
 
 // vscode-ext/src/extension.ts
 var state = null;
@@ -168923,6 +168937,8 @@ function setState(next) {
   if (next)
     for (const h of newHandoffs(prev, next, myAgents()))
       announceHandoff(h);
+  if (next)
+    announceSignatureChanges(prev, next);
   changed.fire();
 }
 async function connect() {
@@ -168997,7 +169013,21 @@ function decorate(editor) {
     editor.setDecorations(style(cursorStyles, color, () => ({ after: { color, fontWeight: "bold" }, borderWidth: "0 0 0 2px", borderStyle: "solid", borderColor: color })), cursors.get(color) ?? []);
   }
 }
-var redraw = () => vscode.window.visibleTextEditors.forEach(decorate);
+var warnStyle = vscode.window.createTextEditorDecorationType({
+  textDecoration: "underline wavy #EF9F27",
+  overviewRulerColor: "#EF9F27",
+  after: { color: "#EF9F27", fontStyle: "italic" }
+});
+function decorateWarnings(editor) {
+  if (!state)
+    return editor.setDecorations(warnStyle, []);
+  const doc = editor.document;
+  editor.setDecorations(warnStyle, callerWarnings(state, relPath(doc), doc.getText()).map((w) => {
+    const eol = doc.lineAt(w.start - 1).range.end;
+    return { range: new vscode.Range(w.start - 1, doc.lineAt(w.start - 1).firstNonWhitespaceCharacterIndex, w.start - 1, eol.character), hoverMessage: w.message, renderOptions: { after: { contentText: `   ${w.message}` } } };
+  }));
+}
+var redraw = () => vscode.window.visibleTextEditors.forEach((e) => (decorate(e), decorateWarnings(e)));
 var lenses = {
   onDidChangeCodeLenses: changed.event,
   provideCodeLenses(doc) {
@@ -169052,6 +169082,16 @@ function announceHandoff(h) {
   const msg = `${name} is yours now${h.from ? ` (from ${h.from.label})` : ""}.${h.commit ? ` ${h.commit.summary}` : " Not committed yet."}`;
   const actions = h.commit ? ["Pull commit"] : [];
   vscode.window.showInformationMessage(msg, ...actions).then((a) => a && pullCommit(h.commit.sha));
+}
+function announceSignatureChanges(prev, next) {
+  const mine = myAgents();
+  for (const [key, c] of Object.entries(next.changes ?? {})) {
+    if (prev?.changes?.[key]?.at === c.at || mine.includes(c.by.id))
+      continue;
+    const affected = c.callers.filter((k) => mine.includes(next.locks[k]?.holder.id ?? ""));
+    if (affected.length)
+      vscode.window.showWarningMessage(`${c.by.label} changed ${key.slice(key.lastIndexOf("#") + 1)}. Your agent's ${affected.map((k) => k.slice(k.lastIndexOf("#") + 1)).join(", ")} calls it.`);
+  }
 }
 function pullCommit(sha) {
   const t = vscode.window.createTerminal({ name: "Foreman", cwd: root });

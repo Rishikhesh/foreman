@@ -73,3 +73,16 @@ export function gitDirOf(root: string, isFile: (p: string) => boolean, read: (p:
   const target = read(dotGit).replace(/^gitdir:\s*/, "").trim()
   return target.startsWith("/") ? target : `${root}/${target}`
 }
+
+/** Functions in this file that call something whose name or parameters just changed. */
+export function callerWarnings(state: RepoState, file: string, source: string) {
+  const fns = functionsIn(file, source)
+  const out: { name: string; start: number; end: number; message: string }[] = []
+  for (const [key, c] of Object.entries(state.changes ?? {}))
+    for (const caller of c.callers) {
+      if (fileOf(caller) !== file) continue
+      const fn = fns.find(f => `${file}#${f.name}` === caller)
+      if (fn) out.push({ name: fn.name, start: fn.start, end: fn.end, message: `⚠ calls ${key.slice(key.lastIndexOf("#") + 1)}, changed by ${c.by.label}` })
+    }
+  return out
+}

@@ -87,3 +87,10 @@ test("grant gives a live socket that streams the room state; revoke frees a lock
   expect((await update).changes.state.locks).toEqual({})
   ws.close()
 })
+
+test("signature route warns caller holders", async () => {
+  const room = `test-${crypto.randomUUID().slice(0, 8)}`
+  await post("/api/claim", { repoId: room, agent: B, keys: ["src/login.ts#login"] })
+  await post("/api/signature", { repoId: room, agent: A, key: V, callers: ["src/login.ts#login"] })
+  expect(await post("/api/notices", { repoId: room, agentId: B.id })).toEqual([{ kind: "signature", key: V, by: A, callers: ["src/login.ts#login"] }])
+})

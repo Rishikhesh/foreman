@@ -123,3 +123,26 @@ test("pre-commit allows a commit that only touches functions nobody else holds, 
   await $`git -C ${dir} add -A`.quiet()
   expect(await run(["git", "pre-commit"], "", dir).exited).toBe(0)
 })
+
+test("post-tool spots a changed signature and reports the callers found in the repo", async () => {
+  const dir = await repo()
+  writeFileSync(path.join(dir, "login.ts"), 'import { validateToken } from "./auth"\nexport function login(t: string) {\n  return validateToken(t)\n}\n')
+  await $`git -C ${dir} add -A && git -C ${dir} commit -qm base --no-verify`.quiet()
+  await out(run(["hook", "pre-tool"], edit(dir), dir))
+  writeFileSync(path.join(dir, "auth.ts"), "export function validateToken(t: string, now: number) {\n  return t\n}\n")
+  calls.length = 0
+  reply["/api/notices"] = []
+  await out(run(["hook", "post-tool"], { ...edit(dir), tool_response: {} }, dir))
+  const sig = calls.find(c => c.path === "/api/signature")
+  expect(sig?.body).toMatchObject({ repoId: "r1", agent: { id: "claude:s1" }, key: "auth.ts#validateToken", callers: ["login.ts#login"] })
+})
+
+test("post-tool reports nothing when only a function body changed", async () => {
+  const dir = await repo()
+  await out(run(["hook", "pre-tool"], edit(dir), dir))
+  writeFileSync(path.join(dir, "auth.ts"), "export function validateToken(t: string) {\n  return t.trim()\n}\n")
+  calls.length = 0
+  reply["/api/notices"] = []
+  await out(run(["hook", "post-tool"], edit(dir), dir))
+  expect(calls.find(c => c.path === "/api/signature")).toBeUndefined()
+})

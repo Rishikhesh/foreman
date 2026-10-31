@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { claim, emptyState, expire, isWaiting, joinRoom, releaseAll, releaseFiles, revoke, takeNotices, touch, TTL_MS } from "./locks.js"
+import { claim, emptyState, expire, isWaiting, joinRoom, releaseAll, releaseFiles, revoke, signatureChanged, takeNotices, touch, TTL_MS } from "./locks.js"
 import type { AgentRef } from "./types.js"
 
 const A: AgentRef = { id: "claude:a", label: "claude@rishi" }
@@ -164,4 +164,23 @@ test("a handed-off lock remembers who it came from and the commit", () => {
   s = claim(s, B, [V], 2).state
   s = releaseFiles(s, A, ["src/auth.ts"], 3, commit).state
   expect(s.locks[V]).toMatchObject({ holder: B, from: A, commit })
+})
+
+test("signatureChanged warns agents holding or looking at callers, and records it for the editor", () => {
+  const L = "src/login.ts#login"
+  let s = claim(emptyState(), B, [L], 1).state
+  s = touch(s, C, "src/login.ts", 3, "read", 2).state
+  s = touch(s, A, "src/login.ts", 3, "read", 2).state
+  const r = signatureChanged(s, A, V, [L, "src/auth.ts#getUser"], 5)
+  expect(r.state.outbox[B.id]).toContainEqual({ kind: "signature", key: V, by: A, callers: [L] })
+  expect(r.state.outbox[C.id]).toContainEqual({ kind: "signature", key: V, by: A, callers: [L] })
+  expect(r.state.outbox[A.id] ?? []).toEqual([])
+  expect(r.state.changes[V]).toEqual({ by: A, at: 5, callers: [L, "src/auth.ts#getUser"] })
+  expect(r.events).toEqual([{ type: "signature", agent: A, key: V }])
+})
+
+test("old signature changes are dropped after 10 minutes", () => {
+  let s = signatureChanged(emptyState(), A, V, [], 0).state
+  s = signatureChanged(s, A, R, [], 10 * 60_000 + 1).state
+  expect(Object.keys(s.changes)).toEqual([R])
 })

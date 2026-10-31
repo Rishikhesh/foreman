@@ -5,7 +5,7 @@ import * as vscode from "vscode"
 import { decodeInvite, encodeInvite } from "../../cli/onboard.js"
 import { functionsIn } from "../../src/core/symbols.js"
 import type { AgentRef, RepoState } from "../../src/core/types.js"
-import { COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
+import { callerWarnings, COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
 
 interface Config { url: string; repoId: string; name: string; color: string }
 
@@ -38,6 +38,7 @@ function setState(next: RepoState | null) {
   const prev = state
   state = next
   if (next) for (const h of newHandoffs(prev, next, myAgents())) announceHandoff(h)
+  if (next) announceSignatureChanges(prev, next)
   changed.fire()
 }
 
@@ -113,7 +114,25 @@ function decorate(editor: vscode.TextEditor) {
   }
 }
 
-const redraw = () => vscode.window.visibleTextEditors.forEach(decorate)
+const warnStyle = vscode.window.createTextEditorDecorationType({
+  textDecoration: "underline wavy #EF9F27",
+  overviewRulerColor: "#EF9F27",
+  after: { color: "#EF9F27", fontStyle: "italic" },
+})
+
+function decorateWarnings(editor: vscode.TextEditor) {
+  if (!state) return editor.setDecorations(warnStyle, [])
+  const doc = editor.document
+  editor.setDecorations(
+    warnStyle,
+    callerWarnings(state, relPath(doc), doc.getText()).map(w => {
+      const eol = doc.lineAt(w.start - 1).range.end
+      return { range: new vscode.Range(w.start - 1, doc.lineAt(w.start - 1).firstNonWhitespaceCharacterIndex, w.start - 1, eol.character), hoverMessage: w.message, renderOptions: { after: { contentText: `   ${w.message}` } } }
+    }),
+  )
+}
+
+const redraw = () => vscode.window.visibleTextEditors.forEach(e => (decorate(e), decorateWarnings(e)))
 
 // ---------- CodeLens ----------
 
@@ -173,6 +192,17 @@ function announceHandoff(h: { key: string; from?: AgentRef; commit?: { sha: stri
   const msg = `${name} is yours now${h.from ? ` (from ${h.from.label})` : ""}.${h.commit ? ` ${h.commit.summary}` : " Not committed yet."}`
   const actions = h.commit ? ["Pull commit"] : []
   vscode.window.showInformationMessage(msg, ...actions).then(a => a && pullCommit(h.commit!.sha))
+}
+
+/** Pop up once when someone else changes a function that code I'm holding calls. */
+function announceSignatureChanges(prev: RepoState | null, next: RepoState) {
+  const mine = myAgents()
+  for (const [key, c] of Object.entries(next.changes ?? {})) {
+    if (prev?.changes?.[key]?.at === c.at || mine.includes(c.by.id)) continue
+    const affected = c.callers.filter(k => mine.includes(next.locks[k]?.holder.id ?? ""))
+    if (affected.length)
+      vscode.window.showWarningMessage(`${c.by.label} changed ${key.slice(key.lastIndexOf("#") + 1)}. Your agent's ${affected.map(k => k.slice(k.lastIndexOf("#") + 1)).join(", ")} calls it.`)
+  }
 }
 
 function pullCommit(sha: string) {
