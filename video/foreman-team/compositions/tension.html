@@ -1,0 +1,62 @@
+<template>
+  <style>
+  #root { position: absolute; inset: 0; overflow: hidden; font-family: Inter, sans-serif; }
+  .win { position: absolute; background: #1E1E1E; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #323233; display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bar-title { position: absolute; left: 0; right: 0; text-align: center; color: #CCCCCC; font: 500 18px Inter, sans-serif; }
+  .act { position: absolute; left: 0; top: 44px; bottom: 0; width: 64px; background: #333333; }
+  .act svg { position: absolute; left: 16px; width: 32px; height: 32px; }
+  .tabs { position: absolute; top: 44px; right: 0; height: 46px; background: #252526; }
+  .tab { position: absolute; top: 0; height: 46px; padding: 0 24px; background: #1E1E1E; color: #FFFFFF; font: 400 19px Inter, sans-serif; line-height: 46px; border-top: 2px solid #378ADD; }
+  .code { position: absolute; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 24px; color: #D4D4D4; white-space: pre; }
+  .row { position: absolute; left: 0; height: 37px; line-height: 37px; }
+  .ln { position: absolute; left: 0; width: 56px; text-align: right; color: #858585; }
+  .tx { position: absolute; left: 84px; }
+  .lens { position: absolute; left: 84px; height: 30px; line-height: 30px; font: 400 19px Inter, sans-serif; color: #A0A0A0; white-space: pre; }
+  .stripe { position: absolute; left: 70px; right: 0; border-left: 6px solid; opacity: 0; }
+  .term { position: absolute; background: #181818; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .term-body { position: absolute; left: 28px; right: 28px; top: 66px; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 21px; line-height: 32px; color: #D4D4D4; white-space: pre-wrap; }
+  .title { position: absolute; font: 400 64px "Archivo Black", sans-serif; letter-spacing: -0.01em; color: #FFFFFF; white-space: nowrap; }
+  .title span { display: inline-block; }
+  .toast { position: absolute; width: 640px; background: #252526; border: 1px solid #454545; border-radius: 10px; padding: 20px 22px 18px 58px; color: #CCCCCC; font: 400 20px/1.45 Inter, sans-serif; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+  .toast .i { position: absolute; left: 20px; top: 21px; width: 24px; height: 24px; border-radius: 50%; background: #3794FF; color: #fff; font: 700 16px/24px Inter; text-align: center; }
+  .btn { display: inline-block; margin: 14px 10px 0 0; padding: 7px 16px; border-radius: 4px; background: #0E639C; color: #fff; font: 500 18px Inter, sans-serif; }
+  .btn.sec { background: #3A3D41; }
+  .cursor { position: absolute; width: 34px; height: 34px; z-index: 50; }
+</style>
+  <div id="root" data-composition-id="tension" data-width="1920" data-height="1080">
+
+    <div style="position:absolute; inset:0; background:#121212;"></div>
+    <div id="tn-win" class="win" style="left:40px; top:170px; width:1840px; height:860px;">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span><div class="bar-title">auth.ts — Merge conflict</div></div>
+      <div class="code" style="left:30px; top:96px; font-size:32px;">
+        <div class="row" style="top:0; height:52px; line-height:52px;"><span class="tx" style="left:20px"><span style="color:#C586C0">export</span> <span style="color:#569CD6">function</span> <span style="color:#DCDCAA">validateToken</span>(<span style="color:#9CDCFE">token</span>: <span style="color:#4EC9B0">string</span>) {</span></div>
+        <div class="row" style="top:52px; height:52px; line-height:52px;"><span class="tx" style="left:20px">  <span style="color:#569CD6">const</span> <span style="color:#9CDCFE">claims</span> = <span style="color:#9CDCFE">JSON</span>.<span style="color:#DCDCAA">parse</span>(<span style="color:#DCDCAA">atob</span>(<span style="color:#9CDCFE">token</span>))</span></div>
+        <div class="row tn-cf" style="top:104px; height:52px; line-height:52px; width:1760px; background:rgba(63,185,80,0.22);"><span class="tx" style="left:20px; color:#3FB950"><<<<<<< HEAD (Current Change)</span></div>
+        <div class="row tn-cf" style="top:156px; height:52px; line-height:52px; width:1760px; background:rgba(63,185,80,0.12);"><span class="tx" style="left:20px; ">  <span style="color:#C586C0">if</span> (!<span style="color:#9CDCFE">claims</span>.<span style="color:#9CDCFE">sub</span>) <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">null</span></span></div>
+        <div class="row tn-cf" style="top:208px; height:52px; line-height:52px; width:1760px; background:;"><span class="tx" style="left:20px; color:#888">=======</span></div>
+        <div class="row tn-cf" style="top:260px; height:52px; line-height:52px; width:1760px; background:rgba(56,139,253,0.12);"><span class="tx" style="left:20px; ">  <span style="color:#C586C0">if</span> (<span style="color:#9CDCFE">claims</span>.<span style="color:#9CDCFE">iss</span> !== <span style="color:#9CDCFE">issuer</span>) <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">null</span></span></div>
+        <div class="row tn-cf" style="top:312px; height:52px; line-height:52px; width:1760px; background:rgba(56,139,253,0.12);"><span class="tx" style="left:20px; ">  <span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"checked"</span>, <span style="color:#9CDCFE">claims</span>.<span style="color:#9CDCFE">sub</span>)</span></div>
+        <div class="row tn-cf" style="top:364px; height:52px; line-height:52px; width:1760px; background:rgba(56,139,253,0.22);"><span class="tx" style="left:20px; color:#388BFD">>>>>>>> incoming (Incoming Change)</span></div>
+        <div class="row" style="top:416px; height:52px; line-height:52px;"><span class="tx" style="left:20px">  <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">claims</span></span></div>
+      </div>
+      <div id="tn-git" style="position:absolute; left:50px; bottom:96px; font:500 26px Menlo, monospace; color:#E2C08D; opacity:0;">CONFLICT (content): Merge conflict in demo/sample/src/auth.ts</div>
+      <div id="tn-break" style="position:absolute; left:50px; bottom:40px; font:500 26px Menlo, monospace; color:#FF7A7A; opacity:0;">TypeError: Cannot read properties of null (reading 'sub')</div>
+    </div>
+    <div id="tn-t" class="title" style="left:60px; top:52px;"><span class="tn-t-w" style="">Found</span> <span class="tn-t-w" style="">at</span> <span class="tn-t-w" style="color:#F14C4C">merge</span> <span class="tn-t-w" style="">time.</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#tn-win", { scale: 0.96, filter: "blur(10px)" }, { scale: 1, filter: "blur(0px)", duration: 0.45, ease: "expo.out" }, 0);
+    tl.fromTo(".tn-cf", { opacity: 0 }, { opacity: 1, duration: 0.12, stagger: 0.07 }, 0.25);
+    tl.fromTo("#tn-t .tn-t-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 0.5);
+    tl.fromTo("#tn-git", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 2.3);
+    tl.fromTo("#tn-break", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 4.9);
+    tl.to("#tn-win", { scale: 0.08, opacity: 0, duration: 0.4, ease: "power3.in" }, 7.55);
+    tl.to("#tn-t", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 7.45);
+    tl.set({}, {}, 8);
+    window.__timelines["tension"] = tl;
+  </script>
+</template>

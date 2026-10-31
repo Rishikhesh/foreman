@@ -1,0 +1,162 @@
+<template>
+  <style>
+  #root { position: absolute; inset: 0; overflow: hidden; font-family: Inter, sans-serif; }
+  .win { position: absolute; background: #1E1E1E; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #323233; display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bar-title { position: absolute; left: 0; right: 0; text-align: center; color: #CCCCCC; font: 500 18px Inter, sans-serif; }
+  .act { position: absolute; left: 0; top: 44px; bottom: 0; width: 64px; background: #333333; }
+  .act svg { position: absolute; left: 16px; width: 32px; height: 32px; }
+  .tabs { position: absolute; top: 44px; right: 0; height: 46px; background: #252526; }
+  .tab { position: absolute; top: 0; height: 46px; padding: 0 24px; background: #1E1E1E; color: #FFFFFF; font: 400 19px Inter, sans-serif; line-height: 46px; border-top: 2px solid #378ADD; }
+  .code { position: absolute; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 24px; color: #D4D4D4; white-space: pre; }
+  .row { position: absolute; left: 0; height: 37px; line-height: 37px; }
+  .ln { position: absolute; left: 0; width: 56px; text-align: right; color: #858585; }
+  .tx { position: absolute; left: 84px; }
+  .lens { position: absolute; left: 84px; height: 30px; line-height: 30px; font: 400 19px Inter, sans-serif; color: #A0A0A0; white-space: pre; }
+  .stripe { position: absolute; left: 70px; right: 0; border-left: 6px solid; opacity: 0; }
+  .term { position: absolute; background: #181818; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .term-body { position: absolute; left: 28px; right: 28px; top: 66px; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 21px; line-height: 32px; color: #D4D4D4; white-space: pre-wrap; }
+  .title { position: absolute; font: 400 64px "Archivo Black", sans-serif; letter-spacing: -0.01em; color: #FFFFFF; white-space: nowrap; }
+  .title span { display: inline-block; }
+  .toast { position: absolute; width: 640px; background: #252526; border: 1px solid #454545; border-radius: 10px; padding: 20px 22px 18px 58px; color: #CCCCCC; font: 400 20px/1.45 Inter, sans-serif; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+  .toast .i { position: absolute; left: 20px; top: 21px; width: 24px; height: 24px; border-radius: 50%; background: #3794FF; color: #fff; font: 700 16px/24px Inter; text-align: center; }
+  .btn { display: inline-block; margin: 14px 10px 0 0; padding: 7px 16px; border-radius: 4px; background: #0E639C; color: #fff; font: 500 18px Inter, sans-serif; }
+  .btn.sec { background: #3A3D41; }
+  .cursor { position: absolute; width: 34px; height: 34px; z-index: 50; }
+</style>
+  <div id="root" data-composition-id="editor" data-width="1920" data-height="1080">
+
+    <div style="position:absolute; inset:0; background:#121212;"></div>
+    <div id="ed-win" class="win" style="left:40px; top:170px; width:1840px; height:880px;">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span><div class="bar-title">auth.ts — hauntedHacks — Rishikhesh</div></div>
+      <div class="act"><svg style="top:24px" viewBox="0 0 24 24" fill="none" stroke="#858585" stroke-width="1.6"><path d="M6 3h9l4 4v14H6z"/></svg><svg style="top:88px"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.5"/></svg></div>
+      <div class="tabs" style="left:64px"><div class="tab" style="left:0">auth.ts</div></div>
+      <div class="code" style="left:76px; top:112px; width:1700px; height:760px;"><div id="b-imp" style="position:absolute; left:0; top:0px; width:1660px;"><div class="row" style="top:0px"><span class="ln">1</span><span class="tx"><span style="color:#C586C0">import</span> { <span style="color:#9CDCFE">db</span> } <span style="color:#C586C0">from</span> <span style="color:#CE9178">"./db"</span></span></div><div class="row" style="top:37px"><span class="ln">2</span><span class="tx"></span></div></div><div id="b-vt" style="position:absolute; left:0; top:74px; width:1660px;"><div id="b-vt-lens" class="lens" style="top:0">○ Free</div><div id="b-vt-stripe" class="stripe" style="top:30px; height:148px;"></div><div id="b-vt-cur" class="stripe" style="top:67px; height:37px; border-left-width:10px;"></div><div id="vt-sig" class="row" style="top:30px"><span class="ln">3</span><span class="tx"><span style="color:#C586C0">export</span> <span style="color:#569CD6">function</span> <span style="color:#DCDCAA">validateToken</span>(<span style="color:#9CDCFE">token</span>: <span style="color:#4EC9B0">string</span>) {</span></div><div class="row" style="top:67px"><span class="ln">4</span><span class="tx">  <span style="color:#569CD6">const</span> <span style="color:#9CDCFE">claims</span> = <span style="color:#9CDCFE">JSON</span>.<span style="color:#DCDCAA">parse</span>(<span style="color:#DCDCAA">atob</span>(<span style="color:#9CDCFE">token</span>.<span style="color:#DCDCAA">split</span>(<span style="color:#CE9178">"."</span>)[<span style="color:#B5CEA8">1</span>] ?? <span style="color:#CE9178">"e30="</span>))</span></div><div id="vt-ret" class="row" style="top:104px"><span class="ln">5</span><span class="tx">  <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">claims</span></span></div><div id="vt-end" class="row" style="top:141px"><span class="ln">6</span><span class="tx">}</span></div><div class="row" style="top:178px"><span class="ln">7</span><span class="tx"></span></div></div><div id="b-rs" style="position:absolute; left:0; top:289px; width:1660px;"><div id="b-rs-lens" class="lens" style="top:0">○ Free</div><div id="b-rs-stripe" class="stripe" style="top:30px; height:148px;"></div><div id="b-rs-cur" class="stripe" style="top:67px; height:37px; border-left-width:10px;"></div><div class="row" style="top:30px"><span class="ln">8</span><span class="tx"><span style="color:#C586C0">export</span> <span style="color:#569CD6">async</span> <span style="color:#569CD6">function</span> <span style="color:#DCDCAA">refreshSession</span>(<span style="color:#9CDCFE">id</span>: <span style="color:#4EC9B0">string</span>) {</span></div><div class="row" style="top:67px"><span class="ln">9</span><span class="tx">  <span style="color:#569CD6">const</span> <span style="color:#9CDCFE">session</span> = <span style="color:#C586C0">await</span> <span style="color:#9CDCFE">db</span>.<span style="color:#DCDCAA">session</span>(<span style="color:#9CDCFE">id</span>)</span></div><div class="row" style="top:104px"><span class="ln">10</span><span class="tx">  <span style="color:#C586C0">return</span> { ...<span style="color:#9CDCFE">session</span>, <span style="color:#9CDCFE">refreshedAt</span>: <span style="color:#9CDCFE">Date</span>.<span style="color:#DCDCAA">now</span>() }</span></div><div class="row" style="top:141px"><span class="ln">11</span><span class="tx">}</span></div><div class="row" style="top:178px"><span class="ln">12</span><span class="tx"></span></div></div><div id="b-gu" style="position:absolute; left:0; top:504px; width:1660px;"><div id="b-gu-lens" class="lens" style="top:0">○ Free</div><div id="b-gu-stripe" class="stripe" style="top:30px; height:148px;"></div><div id="b-gu-cur" class="stripe" style="top:67px; height:37px; border-left-width:10px;"></div><div id="gu-sig" class="row" style="top:30px"><span class="ln">13</span><span class="tx"><span style="color:#C586C0">export</span> <span style="color:#569CD6">function</span> <span style="color:#DCDCAA">getUser</span>(<span style="color:#9CDCFE">token</span>: <span style="color:#4EC9B0">string</span>) {</span></div><div id="gu-call" class="row" style="top:67px"><span id="gu-err" style="position:absolute; left:835.4px; color:#FF7A7A; opacity:0;">   Expected 1 arguments, but got 2.</span><span class="ln">14</span><span class="tx">  <span style="color:#569CD6">const</span> <span style="color:#9CDCFE">claims</span> = <span style="color:#DCDCAA">validateToken</span>(<span style="color:#9CDCFE">token</span>)</span></div><div id="gu-null" class="row" style="top:104px; opacity:0;"><span class="ln">15</span><span class="tx">  <span style="color:#C586C0">if</span> (!<span style="color:#9CDCFE">claims</span>) <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">null</span></span></div><div id="gu-ret" class="row" style="top:104px"><span class="ln">15</span><span class="tx">  <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">db</span>.<span style="color:#DCDCAA">user</span>(<span style="color:#9CDCFE">claims</span>.<span style="color:#9CDCFE">sub</span>)</span></div><div id="gu-end" class="row" style="top:141px"><span class="ln">16</span><span class="tx">}</span></div></div></div>
+    </div>
+    <div id="ed-t-r" class="term" style="left:1300px; top:170px; width:580px; height:400px; opacity:0; border:2px solid #378ADD;">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span><div class="bar-title">claude — Rishikhesh</div></div>
+      <div class="term-body" style="font-size:19px; line-height:28px;"><span style="color:#9CDCFE">⏺ Update(demo/sample/src/auth.ts)</span>
+<span style="color:#858585">  ⎿ </span><span style="color:#F14C4C">PreToolUse:Edit denied:</span>
+validateToken in demo/sample/src/auth.ts is locked by claude@Joel-Marc. You are #1 in line. Work on something else; you will be told here when it is yours.
+<span id="ed-meanwhile-1" style="opacity:0; color:#9CDCFE">⏺ Update(demo/sample/src/auth.ts)</span></div>
+    </div>
+    <div id="ed-t-z" class="term" style="left:1300px; top:600px; width:580px; height:450px; opacity:0; border:2px solid #639922;">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span><div class="bar-title">claude — turzobose</div></div>
+      <div class="term-body" style="font-size:19px; line-height:28px;"><span style="color:#9CDCFE">⏺ Update(demo/sample/src/auth.ts)</span>
+<span style="color:#858585">  ⎿ </span><span style="color:#F14C4C">PreToolUse:Edit denied:</span>
+validateToken in demo/sample/src/auth.ts is locked by claude@Joel-Marc. You are #2 in line. Work on something else; you will be told here when it is yours.
+<span id="ed-meanwhile-2" style="opacity:0; color:#9CDCFE">⏺ Update(demo/sample/src/auth.ts)</span></div>
+    </div>
+    <div id="ed-t-j" class="term" style="left:1300px; top:170px; width:580px; height:300px; opacity:0; border:2px solid #D85A30;">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span><div class="bar-title">claude — Joel-Marc</div></div>
+      <div class="term-body" style="font-size:19px; line-height:28px;"><span style="color:#B48EAD">&gt; </span><span id="ed-commit" style="display:inline-block; white-space:nowrap; clip-path:inset(0 100% 0 0);">commit</span>
+<span id="ed-commit2" style="opacity:0"><span style="color:#9CDCFE">⏺ Bash(git commit -m "validateToken: check issuer")</span>
+<span style="color:#858585">  ⎿ </span>[main 4ac7878] validateToken: check issuer</span></div>
+    </div>
+    <div id="ed-toast" class="toast" data-layout-allow-occlusion style="left:1300px; top:490px; width:580px; font-size:18px; opacity:0; z-index:30;"><div class="i">i</div>validateToken is yours now (from claude@Joel-Marc). "validateToken: check issuer" — your agent merges 4ac7878 automatically at its next step.</div>
+    <div id="ed-t-r2" class="term" style="left:1300px; top:690px; width:580px; height:360px; opacity:0; border:2px solid #378ADD;">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span><div class="bar-title">claude — Rishikhesh</div></div>
+      <div class="term-body" style="font-size:19px; line-height:28px;">validateToken in demo/sample/src/auth.ts is yours now. claude@Joel-Marc committed 4ac7878: validateToken: check issuer. <span style="color:#378ADD">Foreman already merged 4ac7878 into your checkout</span>, so you are building on their latest version.</div>
+    </div>
+    <div id="ed-a" class="title" style="left:60px; top:52px;"><span class="ed-a-w" style="">One</span> <span class="ed-a-w" style="">lock</span> <span class="ed-a-w" style="">per</span> <span class="ed-a-w" style="">function.</span></div>
+    <div id="ed-b" class="title" style="left:60px; top:52px; opacity:0;"><span class="ed-b-w" style="">Everyone</span> <span class="ed-b-w" style="">waits</span> <span class="ed-b-w" style="">their</span> <span class="ed-b-w" style="">turn.</span></div>
+    <div id="ed-c" class="title" style="left:60px; top:52px; opacity:0;"><span class="ed-c-w" style="">Callers</span> <span class="ed-c-w" style="color:#EF9F27">warned</span> <span class="ed-c-w" style="">early.</span></div>
+    <div id="ed-d" class="title" style="left:60px; top:52px; opacity:0;"><span class="ed-d-w" style="">Handed</span> <span class="ed-d-w" style="">over.</span> <span class="ed-d-w" style="">Already</span> <span class="ed-d-w" style="">merged.</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#ed-win", { scale: 1.06, filter: "blur(10px)" }, { scale: 1, filter: "blur(0px)", duration: 0.5, ease: "expo.out" }, 0);
+    // ---- locks (vo5 0.4–13.0) ----
+    tl.fromTo("#ed-a .ed-a-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 0.5);
+    tl.fromTo("#b-vt-cur", { opacity: 0, borderLeftColor: "#D85A30", backgroundColor: "rgba(216,90,48,0.25)" }, { opacity: 1, duration: 0.2 }, 1);
+    tl.fromTo("#b-vt-stripe", { opacity: 0, borderLeftColor: "#D85A30", backgroundColor: "rgba(216,90,48,0.12)" }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 1.4);
+    tl.fromTo("#b-rs-cur", { opacity: 0, borderLeftColor: "#639922", backgroundColor: "rgba(99,153,34,0.25)" }, { opacity: 1, duration: 0.2 }, 4.6);
+    tl.fromTo("#b-rs-stripe", { opacity: 0, borderLeftColor: "#639922", backgroundColor: "rgba(99,153,34,0.12)" }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 5);
+    tl.fromTo("#b-gu-cur", { opacity: 0, borderLeftColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.25)" }, { opacity: 1, duration: 0.2 }, 7.6);
+    tl.fromTo("#b-gu-stripe", { opacity: 0, borderLeftColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.12)" }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 8);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "○ Free"; }, [], 0.05);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "○ Free"; }, [], 1.39);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · editing · <1m"; }, [], 1.4);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · editing · <1m"; }, [], 15.39);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · 1m · ⏳ claude@Rishikhesh waiting"; }, [], 15.4);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · 1m · ⏳ claude@Rishikhesh waiting"; }, [], 19.39);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · 1m · ⏳ claude@Rishikhesh, claude@turzobose waiting"; }, [], 19.4);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · 1m · ⏳ claude@Rishikhesh, claude@turzobose waiting"; }, [], 34.99);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Rishikhesh · editing · <1m · ⏳ claude@turzobose waiting"; }, [], 35);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Rishikhesh · editing · <1m · ⏳ claude@turzobose waiting"; }, [], 40.79);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@turzobose · editing · <1m"; }, [], 40.8);
+    tl.call(() => { document.getElementById("b-rs-lens").textContent = "○ Free"; }, [], 0.05);
+    tl.call(() => { document.getElementById("b-rs-lens").textContent = "○ Free"; }, [], 4.99);
+    tl.call(() => { document.getElementById("b-rs-lens").textContent = "🔒 claude@turzobose · editing · <1m"; }, [], 5);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "○ Free"; }, [], 0.05);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "○ Free"; }, [], 7.99);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · <1m"; }, [], 8);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · <1m"; }, [], 24.99);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · 1m  |  ⚠ calls validateToken, changed by claude@Joel-Marc"; }, [], 25);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · 1m  |  ⚠ calls validateToken, changed by claude@Joel-Marc"; }, [], 35.19);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · 1m"; }, [], 35.2);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · 1m"; }, [], 40.79);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "○ Free"; }, [], 40.8);
+    tl.set("#gu-call .tx", { innerHTML: "  <span style=\"color:#569CD6\">const</span> <span style=\"color:#9CDCFE\">claims</span> = <span style=\"color:#DCDCAA\">validateToken</span>(<span style=\"color:#9CDCFE\">token</span>)" }, 0);
+    tl.set("#gu-call .tx", { innerHTML: "  <span style=\"color:#569CD6\">const</span> <span style=\"color:#9CDCFE\">claims</span> = <span style=\"color:#DCDCAA\">validateToken</span>(<span style=\"color:#9CDCFE\">token</span>, <span style=\"color:#CE9178\">\"foreman\"</span>)" }, 9.4);
+    tl.fromTo(["#gu-ret", "#gu-end"], { y: 0 }, { y: 37, duration: 0.25, ease: "power2.out" }, 10.6);
+    tl.set("#gu-ret .ln", { textContent: "15" }, 0); tl.set("#gu-ret .ln", { textContent: "16" }, 10.6);
+    tl.set("#gu-end .ln", { textContent: "16" }, 0); tl.set("#gu-end .ln", { textContent: "17" }, 10.6);
+    tl.fromTo("#gu-null", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 10.75);
+    tl.fromTo("#b-rs-cur", { y: 0 }, { y: 37, duration: 0.2, ease: "power2.out" }, 11.5);
+    tl.to("#ed-a", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 13.6);
+    // ---- queue (vo6 14.4–23.0) ----
+    tl.fromTo("#ed-b", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 14.4);
+    tl.fromTo("#ed-b .ed-b-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 14.4);
+    tl.fromTo("#ed-t-r", { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 14.8);
+    tl.fromTo("#ed-t-z", { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 18.9);
+    tl.fromTo("#ed-meanwhile-1", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 16.9);
+    tl.to("#b-gu-cur", { y: 74, duration: 0.2, ease: "power2.out" }, 17.1);
+    tl.fromTo("#ed-meanwhile-2", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 21.0);
+    tl.to("#b-rs-cur", { y: 74, duration: 0.2, ease: "power2.out" }, 21.2);
+    tl.to("#ed-t-r", { opacity: 0, x: 80, duration: 0.3, ease: "power3.in" }, 23.4);
+    tl.to("#ed-t-z", { opacity: 0, x: 80, duration: 0.3, ease: "power3.in" }, 23.4);
+    tl.to("#ed-b", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 23.5);
+    // ---- caller warning (vo7 24.4–31.9) ----
+    tl.fromTo("#ed-c", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 24.4);
+    tl.fromTo("#ed-c .ed-c-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 24.4);
+    tl.fromTo("#gu-sig .tx", { textDecoration: "none" }, { textDecoration: "underline wavy #EF9F27", duration: 0.01 }, 25.0);
+    tl.fromTo("#gu-err", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 25.3);
+    tl.to("#b-gu-cur", { y: 0, duration: 0.2, ease: "power2.out" }, 27.0);
+    tl.to("#b-gu-cur", { y: 37, duration: 0.2, ease: "power2.out" }, 29.2);
+    tl.to("#b-rs-cur", { y: 37, duration: 0.2, ease: "power2.out" }, 28.1);
+    tl.to("#ed-c", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 32.4);
+    // ---- handoff chain (vo8 33.4–43.2) ----
+    tl.fromTo("#ed-d", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 33.3);
+    tl.fromTo("#ed-d .ed-d-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 33.3);
+    tl.fromTo("#ed-t-j", { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 33.4);
+    tl.fromTo("#ed-commit", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.45, ease: "steps(6)" }, 33.8);
+    tl.fromTo("#ed-commit2", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 34.4);
+    tl.to("#b-vt-stripe", { borderLeftColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.12)", duration: 0.35, ease: "power2.inOut" }, 35.0);
+    tl.to("#b-vt-cur", { opacity: 0, duration: 0.15 }, 35.0);
+    tl.set("#vt-sig .tx", { innerHTML: "<span style=\"color:#C586C0\">export</span> <span style=\"color:#569CD6\">function</span> <span style=\"color:#DCDCAA\">validateToken</span>(<span style=\"color:#9CDCFE\">token</span>: <span style=\"color:#4EC9B0\">string</span>) {" }, 0);
+    tl.set("#vt-sig .tx", { innerHTML: "<span style=\"color:#C586C0\">export</span> <span style=\"color:#569CD6\">function</span> <span style=\"color:#DCDCAA\">validateToken</span>(<span style=\"color:#9CDCFE\">token</span>: <span style=\"color:#4EC9B0\">string</span>, <span style=\"color:#9CDCFE\">expectedIssuer</span>: <span style=\"color:#4EC9B0\">string</span>) {" }, 35.15);
+    tl.set("#vt-ret .tx", { innerHTML: "  <span style=\"color:#C586C0\">return</span> <span style=\"color:#9CDCFE\">claims</span>" }, 0);
+    tl.set("#vt-ret .tx", { innerHTML: "  <span style=\"color:#C586C0\">if</span> (<span style=\"color:#9CDCFE\">claims</span>.<span style=\"color:#9CDCFE\">iss</span> !== <span style=\"color:#9CDCFE\">expectedIssuer</span>) <span style=\"color:#C586C0\">return</span> <span style=\"color:#9CDCFE\">null</span>" }, 35.15);
+    tl.set("#vt-end .tx", { innerHTML: "}" }, 0);
+    tl.set("#vt-end .tx", { innerHTML: "  <span style=\"color:#C586C0\">return</span> <span style=\"color:#9CDCFE\">claims</span>" }, 35.15);
+    tl.to("#gu-sig .tx", { textDecoration: "none", duration: 0.01 }, 35.2);
+    tl.to("#gu-err", { opacity: 0, duration: 0.2 }, 35.2);
+    tl.fromTo("#ed-toast", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3, ease: "expo.out" }, 35.2);
+    tl.fromTo("#ed-t-r2", { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 35.6);
+    tl.to("#ed-toast", { opacity: 0, duration: 0.2 }, 38.4);
+    tl.to("#b-gu-cur", { opacity: 0, duration: 0.15 }, 38.6);
+    tl.fromTo("#b-vt-cur", { opacity: 0, y: 0, borderLeftColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.25)" }, { opacity: 1, y: 0, duration: 0.2, immediateRender: false }, 38.7);
+    // Rishikhesh commits: validateToken moves on to turzobose, getUser frees
+    tl.to("#b-vt-stripe", { borderLeftColor: "#639922", backgroundColor: "rgba(99,153,34,0.12)", duration: 0.35, ease: "power2.inOut" }, 40.8);
+    tl.to("#b-vt-cur", { borderLeftColor: "#639922", backgroundColor: "rgba(99,153,34,0.25)", duration: 0.35 }, 40.8);
+    tl.to("#b-gu-stripe", { opacity: 0, duration: 0.3 }, 40.8);
+    tl.to("#ed-t-j", { opacity: 0, x: 80, duration: 0.3, ease: "power3.in" }, 42.6);
+    tl.to("#ed-t-r2", { opacity: 0, x: 80, duration: 0.3, ease: "power3.in" }, 42.6);
+    tl.to("#ed-d", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 45);
+    tl.set({}, {}, 45.5);
+    window.__timelines["editor"] = tl;
+  </script>
+</template>

@@ -1,0 +1,46 @@
+<template>
+  <style>
+  #root { position: absolute; inset: 0; overflow: hidden; font-family: Inter, sans-serif; }
+  .win { position: absolute; background: #1E1E1E; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #323233; display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bar-title { position: absolute; left: 0; right: 0; text-align: center; color: #CCCCCC; font: 500 18px Inter, sans-serif; }
+  .act { position: absolute; left: 0; top: 44px; bottom: 0; width: 64px; background: #333333; }
+  .act svg { position: absolute; left: 16px; width: 32px; height: 32px; }
+  .tabs { position: absolute; top: 44px; right: 0; height: 46px; background: #252526; }
+  .tab { position: absolute; top: 0; height: 46px; padding: 0 24px; background: #1E1E1E; color: #FFFFFF; font: 400 19px Inter, sans-serif; line-height: 46px; border-top: 2px solid #378ADD; }
+  .code { position: absolute; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 24px; color: #D4D4D4; white-space: pre; }
+  .row { position: absolute; left: 0; height: 37px; line-height: 37px; }
+  .ln { position: absolute; left: 0; width: 56px; text-align: right; color: #858585; }
+  .tx { position: absolute; left: 84px; }
+  .lens { position: absolute; left: 84px; height: 30px; line-height: 30px; font: 400 19px Inter, sans-serif; color: #A0A0A0; white-space: pre; }
+  .stripe { position: absolute; left: 70px; right: 0; border-left: 6px solid; opacity: 0; }
+  .term { position: absolute; background: #181818; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .term-body { position: absolute; left: 28px; right: 28px; top: 66px; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 21px; line-height: 32px; color: #D4D4D4; white-space: pre-wrap; }
+  .title { position: absolute; font: 400 64px "Archivo Black", sans-serif; letter-spacing: -0.01em; color: #FFFFFF; white-space: nowrap; }
+  .title span { display: inline-block; }
+  .toast { position: absolute; width: 640px; background: #252526; border: 1px solid #454545; border-radius: 10px; padding: 20px 22px 18px 58px; color: #CCCCCC; font: 400 20px/1.45 Inter, sans-serif; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+  .toast .i { position: absolute; left: 20px; top: 21px; width: 24px; height: 24px; border-radius: 50%; background: #3794FF; color: #fff; font: 700 16px/24px Inter; text-align: center; }
+  .btn { display: inline-block; margin: 14px 10px 0 0; padding: 7px 16px; border-radius: 4px; background: #0E639C; color: #fff; font: 500 18px Inter, sans-serif; }
+  .btn.sec { background: #3A3D41; }
+  .cursor { position: absolute; width: 34px; height: 34px; z-index: 50; }
+</style>
+  <div id="root" data-composition-id="reveal" data-width="1920" data-height="1080">
+
+    <div style="position:absolute; inset:0; background:#121212;"></div>
+    <div id="rv-flood" style="position:absolute; inset:0; background:#378ADD; clip-path:circle(0% at 50% 50%);"></div>
+    <div id="rv-lock" style="position:absolute; left:150px; top:300px; width:400px; height:400px;"><svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.5"/></svg></div>
+    <div id="rv-name" style="position:absolute; left:620px; top:310px; font:400 200px 'Archivo Black', sans-serif; letter-spacing:-0.02em; color:#FFFFFF; clip-path:inset(0 100% 0 0);">Foreman</div>
+    <div id="rv-tag" data-hold style="position:absolute; left:632px; top:570px; font:600 54px Inter, sans-serif; color:#FFFFFF;"><span class="rv-w" style="display:inline-block; ">Many</span> <span class="rv-w" style="display:inline-block; ">agents.</span> <span class="rv-w" style="display:inline-block; ">One</span> <span class="rv-w" style="display:inline-block; ">codebase.</span> <span class="rv-w" style="display:inline-block; color:#0B2A4A">Zero</span> <span class="rv-w" style="display:inline-block; color:#0B2A4A">collisions.</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#rv-flood", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(80% at 50% 50%)", duration: 0.45, ease: "power2.inOut" }, 0);
+    tl.fromTo("#rv-lock", { scale: 0.2, opacity: 0, rotation: -12 }, { scale: 1, opacity: 1, rotation: 0, duration: 0.6, ease: "expo.out" }, 0.25);
+    tl.fromTo("#rv-name", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power3.out" }, 0.55);
+    tl.fromTo(".rv-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.12 }, 1.4);
+    tl.set({}, {}, 6);
+    window.__timelines["reveal"] = tl;
+  </script>
+</template>

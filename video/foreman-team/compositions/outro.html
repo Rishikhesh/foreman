@@ -1,0 +1,83 @@
+<template>
+  <style>
+  #root { position: absolute; inset: 0; overflow: hidden; font-family: Inter, sans-serif; }
+  .win { position: absolute; background: #1E1E1E; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #323233; display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bar-title { position: absolute; left: 0; right: 0; text-align: center; color: #CCCCCC; font: 500 18px Inter, sans-serif; }
+  .act { position: absolute; left: 0; top: 44px; bottom: 0; width: 64px; background: #333333; }
+  .act svg { position: absolute; left: 16px; width: 32px; height: 32px; }
+  .tabs { position: absolute; top: 44px; right: 0; height: 46px; background: #252526; }
+  .tab { position: absolute; top: 0; height: 46px; padding: 0 24px; background: #1E1E1E; color: #FFFFFF; font: 400 19px Inter, sans-serif; line-height: 46px; border-top: 2px solid #378ADD; }
+  .code { position: absolute; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 24px; color: #D4D4D4; white-space: pre; }
+  .row { position: absolute; left: 0; height: 37px; line-height: 37px; }
+  .ln { position: absolute; left: 0; width: 56px; text-align: right; color: #858585; }
+  .tx { position: absolute; left: 84px; }
+  .lens { position: absolute; left: 84px; height: 30px; line-height: 30px; font: 400 19px Inter, sans-serif; color: #A0A0A0; white-space: pre; }
+  .stripe { position: absolute; left: 70px; right: 0; border-left: 6px solid; opacity: 0; }
+  .term { position: absolute; background: #181818; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .term-body { position: absolute; left: 28px; right: 28px; top: 66px; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 21px; line-height: 32px; color: #D4D4D4; white-space: pre-wrap; }
+  .title { position: absolute; font: 400 64px "Archivo Black", sans-serif; letter-spacing: -0.01em; color: #FFFFFF; white-space: nowrap; }
+  .title span { display: inline-block; }
+  .toast { position: absolute; width: 640px; background: #252526; border: 1px solid #454545; border-radius: 10px; padding: 20px 22px 18px 58px; color: #CCCCCC; font: 400 20px/1.45 Inter, sans-serif; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+  .toast .i { position: absolute; left: 20px; top: 21px; width: 24px; height: 24px; border-radius: 50%; background: #3794FF; color: #fff; font: 700 16px/24px Inter; text-align: center; }
+  .btn { display: inline-block; margin: 14px 10px 0 0; padding: 7px 16px; border-radius: 4px; background: #0E639C; color: #fff; font: 500 18px Inter, sans-serif; }
+  .btn.sec { background: #3A3D41; }
+  .cursor { position: absolute; width: 34px; height: 34px; z-index: 50; }
+</style>
+  <div id="root" data-composition-id="outro" data-width="1920" data-height="1080">
+
+    <div style="position:absolute; inset:0; background:#121212;"></div>
+    <div id="ou-win" class="win" style="left:40px; top:170px; width:1840px; height:880px;">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span><div class="bar-title">auth.ts — hauntedHacks — Rishikhesh</div></div>
+      <div class="act"></div>
+      <div class="tabs" style="left:64px"><div class="tab" style="left:0">auth.ts</div></div>
+      <div class="code" style="left:76px; top:112px;">
+        <div id="ou-s1" class="stripe" style="top:74px; height:148px; border-left-color:#639922; background:rgba(99,153,34,0.12); opacity:1;"></div>
+        <div id="ou-s2" class="stripe" style="top:296px; height:148px; border-left-color:#639922; background:rgba(99,153,34,0.12); opacity:1;"></div>
+        <div class="row" style="top:0px"><span class="ln">1</span><span class="tx"><span style="color:#C586C0">import</span> { <span style="color:#9CDCFE">db</span> } <span style="color:#C586C0">from</span> <span style="color:#CE9178">"./db"</span></span></div>
+        <div class="row" style="top:37px"><span class="ln">2</span><span class="tx"></span></div>
+        <div class="row" style="top:74px"><span class="ln">3</span><span class="tx"><span style="color:#C586C0">export</span> <span style="color:#569CD6">function</span> <span style="color:#DCDCAA">validateToken</span>(<span style="color:#9CDCFE">token</span>: <span style="color:#4EC9B0">string</span>, <span style="color:#9CDCFE">expectedIssuer</span>: <span style="color:#4EC9B0">string</span>) {</span></div>
+        <div class="row" style="top:111px"><span class="ln">4</span><span class="tx">  <span style="color:#569CD6">const</span> <span style="color:#9CDCFE">claims</span> = <span style="color:#9CDCFE">JSON</span>.<span style="color:#DCDCAA">parse</span>(<span style="color:#DCDCAA">atob</span>(<span style="color:#9CDCFE">token</span>.<span style="color:#DCDCAA">split</span>(<span style="color:#CE9178">"."</span>)[<span style="color:#B5CEA8">1</span>] ?? <span style="color:#CE9178">"e30="</span>))</span></div>
+        <div class="row" style="top:148px"><span class="ln">5</span><span class="tx">  <span style="color:#C586C0">if</span> (<span style="color:#9CDCFE">claims</span>.<span style="color:#9CDCFE">iss</span> !== <span style="color:#9CDCFE">expectedIssuer</span>) <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">null</span></span></div>
+        <div class="row" style="top:185px"><span class="ln">6</span><span class="tx">  <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">claims</span></span></div>
+        <div class="row" style="top:222px"><span class="ln">7</span><span class="tx">}</span></div>
+        <div class="row" style="top:259px"><span class="ln">8</span><span class="tx"></span></div>
+        <div class="row" style="top:296px"><span class="ln">9</span><span class="tx"><span style="color:#C586C0">export</span> <span style="color:#569CD6">async</span> <span style="color:#569CD6">function</span> <span style="color:#DCDCAA">refreshSession</span>(<span style="color:#9CDCFE">id</span>: <span style="color:#4EC9B0">string</span>) {</span></div>
+        <div class="row" style="top:333px"><span class="ln">10</span><span class="tx">  <span style="color:#569CD6">const</span> <span style="color:#9CDCFE">session</span> = <span style="color:#C586C0">await</span> <span style="color:#9CDCFE">db</span>.<span style="color:#DCDCAA">session</span>(<span style="color:#9CDCFE">id</span>)</span></div>
+        <div class="row" style="top:370px"><span class="ln">11</span><span class="tx">  <span style="color:#C586C0">return</span> { ...<span style="color:#9CDCFE">session</span>, <span style="color:#9CDCFE">refreshedAt</span>: <span style="color:#9CDCFE">Date</span>.<span style="color:#DCDCAA">now</span>() }</span></div>
+        <div class="row" style="top:407px"><span class="ln">12</span><span class="tx">}</span></div>
+        <div class="row" style="top:444px"><span class="ln">13</span><span class="tx"></span></div>
+        <div class="row" style="top:481px"><span class="ln">14</span><span class="tx"><span style="color:#C586C0">export</span> <span style="color:#569CD6">function</span> <span style="color:#DCDCAA">getUser</span>(<span style="color:#9CDCFE">token</span>: <span style="color:#4EC9B0">string</span>) {</span></div>
+        <div class="row" style="top:518px"><span class="ln">15</span><span class="tx">  <span style="color:#569CD6">const</span> <span style="color:#9CDCFE">claims</span> = <span style="color:#DCDCAA">validateToken</span>(<span style="color:#9CDCFE">token</span>, <span style="color:#CE9178">"foreman"</span>)</span></div>
+        <div class="row" style="top:555px"><span class="ln">16</span><span class="tx">  <span style="color:#C586C0">if</span> (!<span style="color:#9CDCFE">claims</span>) <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">null</span></span></div>
+        <div class="row" style="top:592px"><span class="ln">17</span><span class="tx">  <span style="color:#C586C0">return</span> <span style="color:#9CDCFE">db</span>.<span style="color:#DCDCAA">user</span>(<span style="color:#9CDCFE">claims</span>.<span style="color:#9CDCFE">sub</span>)</span></div>
+        <div class="row" style="top:629px"><span class="ln">18</span><span class="tx">}</span></div>
+      </div>
+    </div>
+    <div id="ou-t" class="title" style="left:60px; top:52px;"><span class="ou-t-w" style="">Many</span> <span class="ou-t-w" style="">agents.</span> <span class="ou-t-w" style="">One</span> <span class="ou-t-w" style="">codebase.</span> <span class="ou-t-w" style="color:#378ADD">Zero</span> <span class="ou-t-w" style="">collisions.</span></div>
+    <div id="ou-card" data-layout-allow-occlusion style="position:absolute; inset:0; background:#FFFFFF; clip-path:circle(0% at 50% 50%);">
+      <div id="ou-lock" style="position:absolute; left:230px; top:290px; width:300px; height:300px;"><svg viewBox="0 0 24 24" fill="none" stroke="#1E1E1E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.5"/></svg></div>
+      <div id="ou-name" style="position:absolute; left:580px; top:290px; font:400 170px 'Archivo Black', sans-serif; letter-spacing:-0.02em; color:#1E1E1E; clip-path:inset(0 100% 0 0);">Foreman</div>
+      <div id="ou-tag" style="position:absolute; left:590px; top:520px; font:600 46px Inter, sans-serif; color:#1E1E1E; opacity:0;">Many agents. One codebase. <span style="color:#378ADD">Zero collisions.</span></div>
+      <div id="ou-cta" style="position:absolute; left:590px; top:620px; font:700 38px Inter, sans-serif; color:#378ADD; opacity:0;">github.com/Rishikhesh/hauntedHacks</div>
+      <div id="ou-built" style="position:absolute; left:590px; top:700px; font:400 30px Inter, sans-serif; color:#5A5A5A; opacity:0;">Built on Terse Durable Actors + Agent Relay</div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.to(["#ou-s1", "#ou-s2"], { opacity: 0, duration: 0.4, ease: "power2.inOut" }, 0.5);
+    tl.fromTo("#ou-t .ou-t-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 0.3);
+    tl.to("#ou-t", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 3);
+    tl.fromTo("#ou-card", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(80% at 50% 50%)", duration: 0.45, ease: "power2.inOut" }, 3.1);
+    tl.set("#ou-win", { opacity: 0 }, 3.56);
+    tl.fromTo("#ou-lock", { x: -260, rotation: -20, opacity: 0 }, { x: 0, rotation: 0, opacity: 1, duration: 0.7, ease: "expo.out" }, 3.4);
+    tl.fromTo("#ou-name", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power3.out" }, 3.85);
+    tl.fromTo("#ou-tag", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 4.35);
+    tl.fromTo("#ou-cta", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 4.75);
+    tl.fromTo("#ou-built", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 5.1);
+    tl.set({}, {}, 8);
+    window.__timelines["outro"] = tl;
+  </script>
+</template>

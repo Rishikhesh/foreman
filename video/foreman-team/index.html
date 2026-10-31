@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[
+  {"id":"color-rishi","type":"color","label":"Rishikhesh colour","default":"#378ADD"},
+  {"id":"color-joel","type":"color","label":"Joel-Marc colour","default":"#D85A30"},
+  {"id":"color-turzo","type":"color","label":"turzobose colour","default":"#639922"}
+]'>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #121212; }
+      #root { position: relative; width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="90" data-width="1920" data-height="1080">
+      <div id="hook" data-composition-id="hook" data-composition-src="compositions/hook.html" data-start="0" data-duration="8" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:1"></div>
+      <div id="tension" data-composition-id="tension" data-composition-src="compositions/tension.html" data-start="8" data-duration="8" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:2"></div>
+      <div id="reveal" data-composition-id="reveal" data-composition-src="compositions/reveal.html" data-start="16" data-duration="6" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:3"></div>
+      <div id="join" data-composition-id="join" data-composition-src="compositions/join.html" data-start="22" data-duration="14.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:4"></div>
+      <div id="editor" data-composition-id="editor" data-composition-src="compositions/editor.html" data-start="36.5" data-duration="45.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:5"></div>
+      <div id="outro" data-composition-id="outro" data-composition-src="compositions/outro.html" data-start="82" data-duration="8" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:6"></div>
+      <audio id="vo1" class="clip" src="assets/voice/vo1.wav" data-start="0.5" data-duration="5.7" data-track-index="2" data-volume="1.364583"></audio>
+      <audio id="vo2" class="clip" src="assets/voice/vo2.wav" data-start="8.4" data-duration="6.17" data-track-index="2" data-volume="1.318257"></audio>
+      <audio id="vo3" class="clip" src="assets/voice/vo3.wav" data-start="16.6" data-duration="3.99" data-track-index="2" data-volume="1.428894"></audio>
+      <audio id="vo4" class="clip" src="assets/voice/vo4.wav" data-start="22.4" data-duration="11.48" data-track-index="2" data-volume="1.135011"></audio>
+      <audio id="vo5" class="clip" src="assets/voice/vo5.wav" data-start="36.9" data-duration="12.61" data-track-index="2" data-volume="1.083927"></audio>
+      <audio id="vo6" class="clip" src="assets/voice/vo6.wav" data-start="50.9" data-duration="8.55" data-track-index="2" data-volume="1.513561"></audio>
+      <audio id="vo7" class="clip" src="assets/voice/vo7.wav" data-start="60.9" data-duration="7.45" data-track-index="2" data-volume="1.44544"></audio>
+      <audio id="vo8" class="clip" src="assets/voice/vo8.wav" data-start="69.9" data-duration="9.79" data-track-index="2" data-volume="1.122018"></audio>
+      <audio id="vo9" class="clip" src="assets/voice/vo9.wav" data-start="82.3" data-duration="7.3" data-track-index="2" data-volume="1"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>
