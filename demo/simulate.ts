@@ -46,7 +46,8 @@ const commit = (w: Who, msg: string) => $`git -C ${w.dir} commit -qam ${msg}`.qu
 
 // ---------- fresh start: empty room, both worktrees on the first demo commit ----------
 const cfg = JSON.parse(readFileSync((await $`git -C ${blue.dir} rev-parse --path-format=absolute --git-path foreman.json`.text()).trim(), "utf8"))
-const api = (route: string, body: object) => fetch(`${cfg.url}${route}`, { method: "POST", body: JSON.stringify({ repoId: cfg.repoId, ...body }) }).then(r => r.json())
+const api = (route: string, body: object) =>
+  fetch(`${cfg.url}${route}`, { method: "POST", body: JSON.stringify({ repoId: cfg.room, ...body }), headers: { authorization: `Bearer ${cfg.key}` } }).then(r => r.json())
 for (const agent of Object.values((await api("/api/status", {})).members ?? {})) await api("/api/release-all", { agent })
 const base = readFileSync(path.join(demo, "base"), "utf8").trim()
 for (const w of [blue, orange]) await $`git -C ${w.dir} reset -q --hard ${base}`.quiet()

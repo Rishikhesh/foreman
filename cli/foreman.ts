@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
+import { createHash, randomBytes } from "node:crypto"
 import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import type { AgentRef, Blocked, Notice, RepoState } from "../src/core/types.js"
 import { callersOf, changedLines, keysForLines, signatureChanges } from "../src/core/symbols.js"
 import * as g from "./git.js"
-import { formatCode, makeCode, normalizeCode } from "./code.js"
-import { COLORS, decodeInvite, encodeInvite, GIT_HOOKS, gitHookScript, mergeHooks, removeHooks } from "./onboard.js"
+import { formatCode, normalizeCode } from "./code.js"
+import { COLORS, GIT_HOOKS, gitHookScript, mergeHooks, removeHooks } from "./onboard.js"
 import { agentFor, contextOutput, denyOutput, describe, editPlan, renderDeny, renderNotice, stopDecision } from "./hook.js"
 
 const CLI_TIMEOUT_MS = 2000
@@ -18,15 +19,16 @@ class Unreachable extends Error {}
 async function ctx(cwd: string) {
   const cfg = await g.readConfig(cwd)
   return {
-    url: process.env.FOREMAN_URL || cfg.url || "http://127.0.0.1:7300",
+    url: process.env.FOREMAN_URL || cfg.url || DEFAULT_SERVER,
     repoId: process.env.FOREMAN_REPO_ID || cfg.room || cfg.repoId || (await g.repoId(cwd)),
+    key: cfg.key,
     cfg,
   }
 }
 
-async function call<T>(url: string, route: string, body: object): Promise<T> {
+async function call<T>(url: string, route: string, body: object, key?: string): Promise<T> {
   try {
-    const res = await fetch(new URL(route, url), { method: "POST", body: JSON.stringify(body), signal: AbortSignal.timeout(CLI_TIMEOUT_MS) })
+    const res = await fetch(new URL(route, url), { method: "POST", body: JSON.stringify(body), signal: AbortSignal.timeout(CLI_TIMEOUT_MS), headers: key ? { authorization: `Bearer ${key}` } : {} })
     if (!res.ok) throw new Error(`${route} ${res.status}`)
     return (await res.json()) as T
   } catch (e) {
@@ -47,14 +49,14 @@ const print = (o: object) => process.stdout.write(JSON.stringify(o))
 
 async function hookAgent(cwd: string, sessionId: string): Promise<AgentRef> {
   const { cfg } = await ctx(cwd)
-  const agent = { ...agentFor(sessionId, cfg.name ?? (await g.userName(cwd))), ...(cfg.color && { color: cfg.color }) }
+  const agent = { ...agentFor(sessionId, cfg.login ?? cfg.name ?? (await g.userName(cwd))), ...(cfg.color && { color: cfg.color }) }
   await g.writeAgent(cwd, agent)
   return agent
 }
 
 async function notices(cwd: string, sessionId: string): Promise<Notice[]> {
-  const { url, repoId } = await ctx(cwd)
-  return withMerges(cwd, await call<Notice[]>(url, "/api/notices", { repoId, agentId: `claude:${sessionId}` }))
+  const { url, repoId, key } = await ctx(cwd)
+  return withMerges(cwd, await call<Notice[]>(url, "/api/notices", { repoId, agentId: `claude:${sessionId}` }, key))
 }
 
 /** For each function handed over with a commit, merge that commit into this checkout before the agent hears about it. */
@@ -79,13 +81,13 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
       }
     })
     if (!plan) return
-    const { url, repoId } = await ctx(root)
+    const { url, repoId, key } = await ctx(root)
     const agent = await hookAgent(root, input.session_id)
-    await call(url, "/api/touch", { repoId, agent, file: plan.file, line: plan.line, mode: plan.mode })
+    await call(url, "/api/touch", { repoId, agent, file: plan.file, line: plan.line, mode: plan.mode }, key)
     if (!plan.keys.length) return
     const abs = path.join(root, plan.file)
     await g.stashBefore(root, plan.file, existsSync(abs) ? readFileSync(abs, "utf8") : null)
-    const r = await call<{ blocked: Blocked[] }>(url, "/api/claim", { repoId, agent, keys: plan.keys })
+    const r = await call<{ blocked: Blocked[] }>(url, "/api/claim", { repoId, agent, keys: plan.keys }, key)
     if (r.blocked?.length) print(denyOutput(r.blocked.map(renderDeny).join("\n")))
   },
 
@@ -104,11 +106,11 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
 
   async "hook stop"(_, stdin) {
     const input = stdin()
-    const { url, repoId } = await ctx(input.cwd)
+    const { url, repoId, key } = await ctx(input.cwd)
     const agentId = `claude:${input.session_id}`
     for (const t0 = Date.now(); Date.now() - t0 < STOP_MAX_MS; await Bun.sleep(STOP_POLL_MS)) {
-      const { waiting } = await call<{ waiting: boolean }>(url, "/api/waiting", { repoId, agentId })
-      const d = stopDecision(waiting, await withMerges(input.cwd, await call<Notice[]>(url, "/api/notices", { repoId, agentId })))
+      const { waiting } = await call<{ waiting: boolean }>(url, "/api/waiting", { repoId, agentId }, key)
+      const d = stopDecision(waiting, await withMerges(input.cwd, await call<Notice[]>(url, "/api/notices", { repoId, agentId }, key)))
       if (d.output) {
         print(d.output)
         return
@@ -119,9 +121,9 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
 
   async "hook session-end"(_, stdin) {
     const input = stdin()
-    const { url, repoId } = await ctx(input.cwd)
+    const { url, repoId, key } = await ctx(input.cwd)
     const agent = await g.readAgent(input.cwd)
-    if (agent?.id === `claude:${input.session_id}`) await call(url, "/api/release-all", { repoId, agent })
+    if (agent?.id === `claude:${input.session_id}`) await call(url, "/api/release-all", { repoId, agent }, key)
   },
 
   async "git post-commit"() {
@@ -133,15 +135,15 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
       console.error("foreman: push failed, keeping your locks (they expire if idle)")
       return
     }
-    const { url, repoId } = await ctx(cwd)
-    await call(url, "/api/release", { repoId, agent, files, commit: info })
+    const { url, repoId, key } = await ctx(cwd)
+    await call(url, "/api/release", { repoId, agent, files, commit: info }, key)
   },
 
   async "git post-merge"() {
     const cwd = process.cwd()
     const { head, shas } = await g.lastMerge(cwd)
-    const { url, repoId } = await ctx(cwd)
-    await call(url, "/api/pulled", { repoId, head, shas })
+    const { url, repoId, key } = await ctx(cwd)
+    await call(url, "/api/pulled", { repoId, head, shas }, key)
   },
 
   async "git pre-commit"() {
@@ -149,8 +151,8 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     if (process.env.FOREMAN_FORCE === "1") return
     const me = await g.readAgent(cwd)
     const staged = await g.stagedFiles(cwd)
-    const { url, repoId } = await ctx(cwd)
-    const s = await call<RepoState>(url, "/api/status", { repoId })
+    const { url, repoId, key } = await ctx(cwd)
+    const s = await call<RepoState>(url, "/api/status", { repoId }, key)
     const touched = new Set<string>()
     for (const file of staged) {
       const { diff, source } = await g.stagedChange(cwd, file)
@@ -168,69 +170,67 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
 
   async init(args) {
     const root = await requireRepo(process.cwd())
-    const url = flag(args, "--url") ?? (process.env.FOREMAN_URL || "http://127.0.0.1:7300")
-    const publicUrl = flag(args, "--public-url") ?? url
+    const url = serverUrl(args)
+    const color = flag(args, "--color") ?? COLORS[0]
+    const githubToken = await signIn(args)
+    const key = newKey()
     const repoId = await g.repoId(root)
-    const code = makeCode()
-    const room = `${repoId}-${code}`
-    await enter(root, url, room, args, code)
-    const published = await g.publishRoom(root, code, { url: publicUrl, room, repoId })
-    if (!published) console.error("foreman: couldn't publish the room code to the repo (no push access?). Share the long invite below instead.")
-    console.log(`\nRoom code: ${formatCode(code)}\nYour teammate runs \`foreman join ${formatCode(code)}\` in their clone, or uses Join a room in VS Code.`)
-    console.log(`Long invite (works without repo access): foreman join ${encodeInvite({ url: publicUrl, repoId: room })}`)
+    const r = await rooms<{ room: string; code: string; login: string }>(url, "/api/rooms/create", { githubToken, repoId, color, keyHash: sha256(key) })
+    await g.writeConfig(root, { url, repoId, room: r.room, code: r.code, key, login: r.login, color })
+    installHooks(root)
+    console.log(`You're ${r.login} (${color}). Hooks installed for Claude Code and git.`)
+    console.log(`\nRoom code: ${formatCode(r.code)}\nSend it to your teammate. They use Join a room in VS Code (or \`foreman join ${formatCode(r.code)}\`), and you click Allow.`)
   },
 
-  async lookup(args) {
+  async join(args) {
     const root = await requireRepo(process.cwd())
     const code = normalizeCode(args[0] ?? "")
     if (!code) throw new UserError(`"${args[0] ?? ""}" isn't a room code. It looks like K7QM-2XPA.`)
-    const info = await g.readRoom(root, code)
-    if (!info) throw new UserError(`No room with code ${formatCode(code)} in this repo. Check the code with whoever sent it.`)
-    console.log(JSON.stringify(info))
+    const url = serverUrl(args)
+    let color = flag(args, "--color")
+    if (!color) {
+      const peek = await rooms<{ taken: string[] }>(url, "/api/rooms/peek", { code })
+      color = COLORS.find(c => !peek.taken.includes(c)) ?? COLORS[0]
+    }
+    const githubToken = await signIn(args)
+    const key = newKey()
+    const repoId = await g.repoId(root)
+    const r = await rooms<{ ok: boolean; room?: string; reason?: string; taken?: string[] }>(url, "/api/rooms/join", { githubToken, code, repoId, color, keyHash: sha256(key) })
+    if (!r.ok) throw new UserError(r.taken ? `Colour ${color} is taken. Free: ${COLORS.filter(c => !r.taken!.includes(c)).join(", ")}. Pass --color <name>.` : `Couldn't join: ${r.reason}`)
+    await g.writeConfig(root, { url, repoId, room: r.room!, code, key, color })
+    installHooks(root)
+    console.log("Asked to join. Waiting for the host to let you in…")
+    if (args.includes("--no-wait")) return
+    for (const t0 = Date.now(); Date.now() - t0 < 15 * 60_000; await Bun.sleep(POLL_MS)) {
+      const me = await rooms<{ login: string; status: string; color: string }>(url, "/api/me", { repoId: r.room }, key).catch(e => {
+        throw new UserError(e instanceof UserError && /room key/.test(e.message) ? "The host didn't let you in." : (e as Error).message)
+      })
+      if (me.status === "allowed") {
+        await g.writeConfig(root, { url, repoId, room: r.room!, code, key, color: me.color, login: me.login })
+        console.log(`You're in as ${me.login} (${me.color}). Open this folder in VS Code and start Claude Code here.`)
+        return
+      }
+    }
+    throw new UserError("Still waiting after 15 minutes. Ask the host to click Allow, then run join again.")
   },
 
-  async publish(args) {
+  async invite() {
+    const cfg = await g.readConfig(await requireRepo(process.cwd()))
+    if (!cfg.code) throw new UserError("Not in a room yet. Run `foreman init` first.")
+    console.log(`Room code: ${formatCode(cfg.code)}`)
+  },
+
+  async allow(args) {
     const root = await requireRepo(process.cwd())
     const cfg = await g.readConfig(root)
-    const url = flag(args, "--public-url")
-    if (!cfg.code || !cfg.room || !url) throw new UserError("Usage: foreman publish --public-url <https address> (in a room you started)")
-    if (!(await g.publishRoom(root, cfg.code, { url, room: cfg.room, repoId: cfg.room.split("-")[0] }))) throw new UserError("Couldn't push the room to the repo.")
-    console.log(`Room ${formatCode(cfg.code)} now points teammates at ${url}`)
+    const r = await rooms<{ ok: boolean; reason?: string }>(cfg.url ?? serverUrl([]), "/api/rooms/allow", { repoId: cfg.room, login: args[0] }, cfg.key)
+    if (!r.ok) throw new UserError(`Couldn't allow ${args[0]}: ${r.reason}`)
+    console.log(`${args[0]} is in.`)
   },
 
   async "install-extension"() {
     linkExtension(path.resolve(import.meta.path), true)
     console.log("Foreman's VS Code extension is installed. Quit and reopen VS Code to load it.")
-  },
-
-  async join(args) {
-    const root = await requireRepo(process.cwd())
-    const arg = args[0] ?? ""
-    let url: string, room: string
-    if (arg.startsWith("fm_")) ({ url, repoId: room } = decodeInvite(arg))
-    else {
-      const code = normalizeCode(arg)
-      if (!code) throw new UserError(`"${arg}" isn't a room code. It looks like K7QM-2XPA.`)
-      const info = await g.readRoom(root, code)
-      if (!info) throw new UserError(`No room with code ${formatCode(code)} in this repo. Check the code with whoever sent it.`)
-      ;({ url, room } = info)
-    }
-    if ((await g.repoId(root)) !== room.split("-")[0]) {
-      console.error("This clone is a different repo than the room you're joining. Run join inside your clone of the same GitHub repo.")
-      return 1
-    }
-    await enter(root, url, room, args.slice(1))
-    console.log(`\nJoined. Open this folder in VS Code (Foreman sidebar) and start Claude Code here.`)
-  },
-
-  async invite(args) {
-    const root = await requireRepo(process.cwd())
-    const cfg = await g.readConfig(root)
-    const room = cfg.room ?? cfg.repoId
-    if (!room || !cfg.url) throw new UserError("Not in a room yet. Run `foreman init` first.")
-    const url = (flag(args, "--url") ?? cfg.url).replace(/\/$/, "")
-    if (cfg.code) console.log(`Room code: ${formatCode(cfg.code)}`)
-    console.log(`Send this to your teammate privately:\n\n  foreman join ${encodeInvite({ url, repoId: room })}`)
   },
 
   async leave() {
@@ -248,8 +248,8 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
 
   async status() {
     const cwd = process.cwd()
-    const { url, repoId } = await ctx(cwd)
-    const s = await call<RepoState>(url, "/api/status", { repoId })
+    const { url, repoId, key } = await ctx(cwd)
+    const s = await call<RepoState>(url, "/api/status", { repoId }, key)
     const locks = Object.values(s.locks ?? {})
     if (!locks.length) console.log("No locks.")
     for (const l of locks) {
@@ -272,10 +272,10 @@ async function reportSignatureChanges(input: any) {
   const changed = signatureChanges(file, before, readFileSync(absPath, "utf8"))
   if (!changed.length) return
   const sources = await g.codeSources(root)
-  const { url, repoId } = await ctx(root)
+  const { url, repoId, key } = await ctx(root)
   const agent = (await g.readAgent(root)) ?? agentFor(input.session_id, await g.userName(root))
   for (const name of changed)
-    await call(url, "/api/signature", { repoId, agent, key: `${file}#${name}`, callers: callersOf(name.split(".").pop()!, sources) })
+    await call(url, "/api/signature", { repoId, agent, key: `${file}#${name}`, callers: callersOf(name.split(".").pop()!, sources) }, key)
 }
 
 const flag = (args: string[], name: string) => {
@@ -291,19 +291,46 @@ async function requireRepo(cwd: string) {
 
 class UserError extends Error {}
 
-/** Join the room (colour check), save config, install Claude Code and git hooks. */
-async function enter(root: string, url: string, room: string, args: string[], code?: string) {
-  const name = (flag(args, "--name") ?? (await g.userName(root)).split(/\s+/)[0]).toLowerCase()
-  const color = flag(args, "--color") ?? COLORS[0]
-  const r = await call<{ ok: boolean; taken?: string[] }>(url, "/api/join", { repoId: room, person: { name, color } })
-  if (!r.ok) throw new UserError(`Colour ${color} is taken. Free: ${COLORS.filter(c => !r.taken?.includes(c)).join(", ")}. Pass --color <name>.`)
-  await g.writeConfig(root, { url, repoId: room.split("-")[0], room, ...(code && { code }), name, color })
+const DEFAULT_SERVER = process.env.FOREMAN_DEFAULT_URL || "https://foreman.rishikhesh.com"
+const POLL_MS = Number(process.env.FOREMAN_POLL_MS ?? 2000)
+const serverUrl = (args: string[]) => (flag(args, "--url") ?? (process.env.FOREMAN_URL || DEFAULT_SERVER)).replace(/\/$/, "")
+const sha256 = (s: string) => createHash("sha256").update(s).digest("hex")
+/** Your room key: made on this laptop; the server only ever sees its SHA-256. */
+const newKey = () => randomBytes(32).toString("hex")
+
+/** Onboarding calls: readable errors instead of failing open. */
+async function rooms<T>(url: string, route: string, body: object, key?: string): Promise<T> {
+  let res: Response
+  try {
+    res = await fetch(new URL(route, url), { method: "POST", body: JSON.stringify(body), signal: AbortSignal.timeout(20_000), headers: key ? { authorization: `Bearer ${key}` } : {} })
+  } catch {
+    throw new UserError(`Can't reach the Foreman server at ${url}. Is it running?`)
+  }
+  if (!res.ok) throw new UserError((await res.text()) || `${route} failed (${res.status})`)
+  return (await res.json()) as T
+}
+
+/** A GitHub token to prove who you are: --dev <name> (demo, this laptop only), FOREMAN_GITHUB_TOKEN (VS Code passes it), or the GitHub CLI. */
+async function signIn(args: string[]): Promise<string> {
+  const dev = flag(args, "--dev")
+  if (dev) return `dev:${dev}`
+  if (process.env.FOREMAN_GITHUB_TOKEN) return process.env.FOREMAN_GITHUB_TOKEN
+  try {
+    const r = Bun.spawnSync(["gh", "auth", "token"])
+    const token = r.stdout.toString().trim()
+    if (r.exitCode === 0 && token) return token
+  } catch {}
+  throw new UserError("Sign in with GitHub first: use Start a room / Join a room in the Foreman sidebar in VS Code, or install the GitHub CLI and run `gh auth login`.")
+}
+
+/** Claude Code hooks (this checkout) and git hooks (all worktrees), plus the VS Code extension. */
+function installHooks(root: string) {
   const cli = path.resolve(import.meta.path)
   const settingsFile = path.join(root, ".claude", "settings.local.json")
   mkdirSync(path.dirname(settingsFile), { recursive: true })
   const settings = existsSync(settingsFile) ? JSON.parse(readFileSync(settingsFile, "utf8")) : {}
   writeFileSync(settingsFile, JSON.stringify(mergeHooks(settings, cli), null, 2))
-  const hooksDir = await g.hooksDir(root)
+  const hooksDir = Bun.spawnSync(["git", "-C", root, "rev-parse", "--path-format=absolute", "--git-path", "hooks"]).stdout.toString().trim()
   mkdirSync(hooksDir, { recursive: true })
   for (const h of GIT_HOOKS) {
     const f = path.join(hooksDir, h)
@@ -314,8 +341,7 @@ async function enter(root: string, url: string, room: string, args: string[], co
     writeFileSync(f, gitHookScript(cli, h))
     chmodSync(f, 0o755)
   }
-  console.log(`You're ${name} (${color}). Hooks installed for Claude Code and git.`)
-  if (linkExtension(cli)) console.log("Foreman's VS Code extension is installed. Restart VS Code once to load it.")
+  if (linkExtension(cli)) console.log("Foreman's VS Code extension is installed. Quit and reopen VS Code once to load it.")
 }
 
 /** Link this repo's VS Code extension into ~/.vscode/extensions (no packaging). Returns true when it was newly linked. */
@@ -347,7 +373,7 @@ async function main() {
   try {
     return (await commands[name](argv.slice(name.split(" ").length), stdin)) ?? 0
   } catch (e) {
-    if (e instanceof UserError || (e instanceof Error && e.message === "invalid invite code")) {
+    if (e instanceof UserError) {
       console.error(e.message)
       return 1
     }

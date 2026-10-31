@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { emptyState } from "../../src/core/locks.js"
 import type { AgentRef, RepoState } from "../../src/core/types.js"
-import { callerWarnings, COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
+import { callerWarnings, COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, newRequests, pendingRequests, rangesForLocks, statusText } from "./view.js"
 
 const A: AgentRef = { id: "claude:a", label: "claude@rishi", color: "blue" }
 const B: AgentRef = { id: "claude:b", label: "claude@friend", color: "orange" }
@@ -92,4 +92,14 @@ test("callerWarnings marks functions in this file that call a recently changed f
     { name: "refreshSession", start: 7, end: 9, message: "⚠ calls validateToken, changed by claude@rishi" },
   ])
   expect(callerWarnings(s, "src/other.ts", SRC)).toEqual([])
+})
+
+const member = (login: string, color: string, role: "host" | "member", status: "pending" | "allowed") => ({ login, githubId: 1, color, role, status, keyHash: "h" })
+
+test("pendingRequests lists people waiting to be let in; newRequests only the ones that just arrived", () => {
+  const before: RepoState = { ...emptyState(), access: { rishi: member("rishi", "blue", "host", "allowed"), pal: member("pal", "green", "member", "pending") } }
+  const after: RepoState = { ...before, access: { ...before.access, eve: member("eve", "pink", "member", "pending") } }
+  expect(pendingRequests(after)).toEqual([{ login: "pal", color: "green" }, { login: "eve", color: "pink" }])
+  expect(newRequests(before, after)).toEqual([{ login: "eve", color: "pink" }])
+  expect(newRequests(null, before)).toEqual([{ login: "pal", color: "green" }])
 })

@@ -15,7 +15,7 @@ export const worktreeRoot = (cwd: string) => text(cwd, "rev-parse", "--show-topl
 export const userName = async (cwd: string) => (await text(cwd, "config", "user.name")) || process.env.USER || "agent"
 const gitDir = async (cwd: string) => path.resolve(cwd, await text(cwd, "rev-parse", "--git-dir"))
 
-export interface Config { url?: string; repoId?: string; room?: string; code?: string; name?: string; color?: string }
+export interface Config { url?: string; repoId?: string; room?: string; code?: string; key?: string; login?: string; name?: string; color?: string }
 export const configFile = async (cwd: string) => path.join(await gitDir(cwd), "foreman.json")
 export async function readConfig(cwd: string): Promise<Config> {
   const f = path.join(await gitDir(cwd), "foreman.json")
@@ -112,24 +112,4 @@ export async function lastMerge(cwd: string): Promise<{ head: string; shas: stri
   const head = await text(cwd, "rev-parse", "HEAD")
   const shas = (await text(cwd, "rev-list", "ORIG_HEAD..HEAD")).split("\n").filter(Boolean)
   return { head, shas }
-}
-
-export interface RoomInfo { url: string; room: string; repoId: string }
-
-/** Publish a room under refs/foreman-rooms/<code> (a one-file commit), so teammates' clones can look it up by code. */
-export async function publishRoom(cwd: string, code: string, info: RoomInfo): Promise<boolean> {
-  const blob = (await $`git -C ${cwd} hash-object -w --stdin < ${new Response(JSON.stringify(info))}`.quiet().nothrow()).stdout.toString().trim()
-  const tree = (await $`git -C ${cwd} mktree < ${new Response(`100644 blob ${blob}\troom.json\n`)}`.quiet().nothrow()).stdout.toString().trim()
-  const commit = await text(cwd, "commit-tree", tree, "-m", `foreman room ${code}`)
-  if (!commit) return false
-  return (await git(cwd, "push", "-q", "-f", "origin", `${commit}:refs/foreman-rooms/${code}`)).exitCode === 0
-}
-
-export async function readRoom(cwd: string, code: string): Promise<RoomInfo | null> {
-  if ((await git(cwd, "fetch", "-q", "origin", `refs/foreman-rooms/${code}`)).exitCode !== 0) return null
-  try {
-    return JSON.parse(await text(cwd, "show", "FETCH_HEAD:room.json"))
-  } catch {
-    return null
-  }
 }

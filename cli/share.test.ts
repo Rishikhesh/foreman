@@ -14,16 +14,15 @@ test("shareUrl turns any git remote into a clonable https link, keeping case", (
   expect(shareUrl("ssh://git@gitlab.com/a/b.git")).toBe("https://gitlab.com/a/b.git")
 })
 
-test("teammateMessage gives the friend everything in one paste", () => {
-  const msg = teammateMessage({ host: "rishi", cloneUrl: "https://github.com/Rishikhesh/hauntedHacks.git", invite: "fm_abc", freeColors: ["green", "purple"] })
-  expect(msg).toBe(`rishi invited you to a Foreman room: our Claude Code agents share live function locks and handoffs.
+test("teammateMessage walks the friend from clone to joined, with the short code", () => {
+  const msg = teammateMessage({ host: "rishi", cloneUrl: "https://github.com/Rishikhesh/hauntedHacks.git", code: "K7QM2XPA" })
+  expect(msg).toBe(`rishi invited you to a Foreman room. Room code: K7QM-2XPA
 
 1. Install Bun if you don't have it: https://bun.sh
 2. In a terminal:
    git clone https://github.com/Rishikhesh/hauntedHacks.git && cd hauntedHacks && bun install
-   bun cli/foreman.ts join fm_abc --name <your name> --color green
-   (free colours: green, purple)
-3. Quit and reopen VS Code, open the hauntedHacks folder, click Trust, and start Claude Code in it.
-
-Keep the invite private: anyone with it can join the room.`)
+   bun cli/foreman.ts install-extension
+3. Quit and reopen VS Code, open the hauntedHacks folder, and click Trust.
+4. In the Foreman sidebar: Join a room → sign in with GitHub → enter K7QM-2XPA → pick a colour.
+5. When rishi lets you in, start Claude Code in that folder.`)
 })

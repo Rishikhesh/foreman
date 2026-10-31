@@ -3,13 +3,13 @@ import { existsSync, mkdirSync, openSync, readFileSync, realpathSync, statSync, 
 import os from "node:os"
 import path from "node:path"
 import * as vscode from "vscode"
-import { decodeInvite, encodeInvite } from "../../cli/onboard.js"
-import { shareUrl, teammateMessage, tunnelUrl } from "../../cli/share.js"
+import { formatCode, normalizeCode } from "../../cli/code.js"
+import { shareUrl, teammateMessage } from "../../cli/share.js"
 import { functionsIn } from "../../src/core/symbols.js"
 import type { AgentRef, RepoState } from "../../src/core/types.js"
-import { callerWarnings, COLOR_HEX, cursorsInFile, freeColors, gitDirOf, lensText, newHandoffs, rangesForLocks, statusText } from "./view.js"
+import { callerWarnings, COLOR_HEX, cursorsInFile, gitDirOf, lensText, newHandoffs, newRequests, pendingRequests, rangesForLocks, statusText } from "./view.js"
 
-interface Config { url: string; repoId: string; name: string; color: string }
+interface Config { url: string; room: string; code?: string; key: string; login?: string; color: string }
 
 let state: RepoState | null = null
 let hot: { key: string; waits: number }[] = []
@@ -18,16 +18,27 @@ let root = ""
 let cli = ""
 const changed = new vscode.EventEmitter<void>()
 
+const configFile = () => path.join(gitDirOf(root, p => existsSync(p) && statSync(p).isFile(), p => readFileSync(p, "utf8")), "foreman.json")
+
 function readConfig(): Config | null {
-  const gitDir = gitDirOf(root, p => existsSync(p) && statSync(p).isFile(), p => readFileSync(p, "utf8"))
-  const f = path.join(gitDir, "foreman.json")
-  if (!existsSync(f)) return null
-  const c = JSON.parse(readFileSync(f, "utf8"))
-  const override = vscode.workspace.getConfiguration("foreman").get<string>("serverUrl")
-  return { ...c, url: override || c.url }
+  if (!root || !existsSync(configFile())) return null
+  const c = JSON.parse(readFileSync(configFile(), "utf8"))
+  return c.key && c.room ? c : null
 }
 
-const myAgents = () => (state && config ? Object.values(state.members).filter(a => a.label === `claude@${config!.name}`).map(a => a.id) : [])
+const serverUrl = () => (vscode.workspace.getConfiguration("foreman").get<string>("serverUrl") || "https://foreman.rishikhesh.com").replace(/\/$/, "")
+
+/** Authenticated call to the room's server with this person's room key. */
+async function api<T>(route: string, body: object = {}): Promise<T> {
+  if (!config) throw new Error("not in a room")
+  const r = await fetch(`${config.url}${route}`, { method: "POST", body: JSON.stringify({ repoId: config.room, ...body }), headers: { authorization: `Bearer ${config.key}` } })
+  if (!r.ok) throw new Error((await r.text()) || `${route} ${r.status}`)
+  return (await r.json()) as T
+}
+
+const isHost = () => !!(state && config?.login && state.access?.[config.login]?.role === "host")
+
+const myAgents = () => (state && config?.login ? Object.values(state.members).filter(a => a.label === `claude@${config!.login}`).map(a => a.id) : [])
 const relPath = (doc: vscode.TextDocument) => path.relative(root, doc.uri.fsPath).split(path.sep).join("/")
 const hex = (a: AgentRef) => COLOR_HEX[a.color ?? ""] ?? "#888780"
 
@@ -42,6 +53,7 @@ function setState(next: RepoState | null) {
   state = next
   if (next) for (const h of newHandoffs(prev, next, myAgents())) announceHandoff(h)
   if (next) announceSignatureChanges(prev, next)
+  if (next && isHost()) for (const r of newRequests(prev, next)) askToAllow(r)
   changed.fire()
 }
 
@@ -53,7 +65,7 @@ async function connect() {
   try {
     if (typeof WebSocket === "undefined") throw new Error("no WebSocket")
     // the Foreman server relays Terse's socket, so this works from any laptop that can reach the server
-    const ws = new WebSocket(`${config.url.replace(/^http/, "ws")}/live?repo=${config.repoId}`)
+    const ws = new WebSocket(`${config.url.replace(/^http/, "ws")}/live?repo=${encodeURIComponent(config.room)}&key=${config.key}`)
     socket = ws
     ws.onmessage = e => {
       const m = JSON.parse(String(e.data))
@@ -70,8 +82,7 @@ async function connect() {
     // ponytail: polling fallback for editors without a global WebSocket
     poll = setInterval(async () => {
       try {
-        const r = await fetch(`${config!.url}/api/status`, { method: "POST", body: JSON.stringify({ repoId: config!.repoId }) })
-        setState((await r.json()) as RepoState)
+        setState(await api<RepoState>("/api/status"))
       } catch {
         setState(null)
       }
@@ -155,7 +166,7 @@ const lenses: vscode.CodeLensProvider = {
 
 // ---------- sidebar ----------
 
-type Node = { label: string; description?: string; children?: Node[]; color?: string; lockKey?: string; icon?: string; command?: string }
+type Node = { label: string; description?: string; children?: Node[]; color?: string; lockKey?: string; icon?: string; command?: string; login?: string }
 
 const tree: vscode.TreeDataProvider<Node> = {
   onDidChangeTreeData: changed.event,
@@ -164,7 +175,7 @@ const tree: vscode.TreeDataProvider<Node> = {
     item.description = n.description
     if (n.lockKey) item.contextValue = "lock"
     if (n.icon) item.iconPath = new vscode.ThemeIcon(n.icon)
-    if (n.command) item.command = { command: n.command, title: n.label }
+    if (n.command) item.command = { command: n.command, title: n.label, arguments: [n] }
     if (n.color) item.iconPath = new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor(`charts.${n.color === "teal" ? "green" : n.color === "pink" ? "red" : n.color}`))
     return item
   },
@@ -172,11 +183,14 @@ const tree: vscode.TreeDataProvider<Node> = {
     if (n) return n.children ?? []
     if (!config) return []
     if (!state) return [{ label: "Offline", description: config.url }]
-    const people: Node[] = Object.values(state.people ?? {}).map(p => ({
-      label: p.name,
-      color: p.color,
-      description: Object.values(state!.members).filter(a => a.label === `claude@${p.name}`).length + " agent(s)",
-    }))
+    const people: Node[] = Object.values(state.access ?? {})
+      .filter(m => m.status === "allowed")
+      .map(m => ({
+        label: `@${m.login}`,
+        color: m.color,
+        description: `${m.role === "host" ? "host · " : ""}${Object.values(state!.members).filter(a => a.label === `claude@${m.login}`).length} agent(s)`,
+      }))
+    const requests: Node[] = isHost() ? pendingRequests(state).map(r => ({ label: `@${r.login}`, description: `wants to join (${r.color}) · click to allow`, icon: "person-add", command: "foreman.reviewRequest", login: r.login })) : []
     const byFile = new Map<string, Node[]>()
     for (const l of Object.values(state.locks)) {
       const i = l.key.lastIndexOf("#")
@@ -185,7 +199,8 @@ const tree: vscode.TreeDataProvider<Node> = {
     }
     const hotNodes: Node[] = hot.map(h => ({ label: h.key.slice(h.key.lastIndexOf("#") + 1), description: `${h.key.slice(0, h.key.lastIndexOf("#"))} · waited on ${h.waits}×` }))
     return [
-      { label: "Invite teammate", description: "copies a message to send", icon: "person-add", command: "foreman.inviteTeammate" },
+      { label: `Room ${config.code ? formatCode(config.code) : ""}`, description: "click to copy an invite for a teammate", icon: "key", command: "foreman.inviteTeammate" },
+      ...(requests.length ? [{ label: "Requests", description: `${requests.length} waiting`, children: requests }] : []),
       { label: "People", children: people },
       ...(hotNodes.length ? [{ label: "Most fought-over", description: "consider splitting these", children: hotNodes }] : []),
       { label: "Locks", description: byFile.size ? "" : "none", children: [...byFile].map(([file, children]) => ({ label: file, children })) },
@@ -219,31 +234,37 @@ function pullCommit(sha: string) {
   t.sendText(`git fetch origin refs/foreman/${sha} && git merge ${sha}`)
 }
 
-// ---------- onboarding (runs the same CLI the hooks use) ----------
+// ---------- joining: requests and Allow ----------
 
-const runCli = (args: string[]) =>
-  new Promise<string>((resolve, reject) =>
-    execFile("bun", [cli, ...args], { cwd: root }, (err, stdout, stderr) => (err ? reject(new Error(stderr.trim() || err.message)) : resolve(stdout))),
-  )
-
-async function pickPerson(url: string, repoId: string) {
-  const name = await vscode.window.showInputBox({ prompt: "Your name in the room", value: process.env.USER ?? "" })
-  if (!name) return
-  let colors = Object.keys(COLOR_HEX)
-  try {
-    const s = (await (await fetch(`${url}/api/status`, { method: "POST", body: JSON.stringify({ repoId }) })).json()) as RepoState
-    colors = freeColors(s, name.toLowerCase())
-  } catch {}
-  const color = await vscode.window.showQuickPick(colors, { placeHolder: "Your colour" })
-  return color ? { name, color } : undefined
+async function askToAllow(r: { login: string; color: string }) {
+  const pick = await vscode.window.showInformationMessage(`@${r.login} wants to join your room (${r.color}).`, "Allow", "Decline")
+  if (pick === "Allow") await api("/api/rooms/allow", { login: r.login }).catch(e => vscode.window.showErrorMessage(`Foreman: ${e.message}`))
+  if (pick === "Decline") await api("/api/rooms/remove", { login: r.login }).catch(e => vscode.window.showErrorMessage(`Foreman: ${e.message}`))
 }
 
-// ---------- hosting: Terse + Foreman server + public tunnel, started on demand and left running ----------
+// ---------- onboarding: GitHub sign-in, then the same CLI the hooks use ----------
+
+const runCli = (args: string[], env: Record<string, string> = {}) =>
+  new Promise<string>((resolve, reject) =>
+    execFile("bun", [cli, ...args], { cwd: root, env: { ...process.env, PATH: toolPath(), ...env } }, (err, stdout, stderr) =>
+      err ? reject(new Error(stderr.trim().split("\n").pop() || err.message)) : resolve(stdout),
+    ),
+  )
+
+/** VS Code's built-in GitHub sign-in (username only); the token goes to our server once and is never stored. */
+const githubToken = async () => (await vscode.authentication.getSession("github", ["read:user"], { createIfNone: true })).accessToken
+
+const pickColor = (taken: string[] = []) =>
+  vscode.window.showQuickPick(
+    Object.keys(COLOR_HEX).filter(c => !taken.includes(c)),
+    { placeHolder: "Pick your colour" },
+  )
+
+// ---------- hosting: Terse + Foreman server + your Cloudflare tunnel, started on demand and left running ----------
 
 const LOCAL = "http://127.0.0.1:7300"
 const home = () => path.resolve(path.dirname(cli), "..")
 const toolPath = () => [process.env.PATH, "/opt/homebrew/bin", "/usr/local/bin", path.join(os.homedir(), ".bun", "bin")].join(":")
-const tunnelFile = () => path.join(home(), ".foreman-tunnel.json")
 
 async function reachable(url: string, healthPath = "/api/health") {
   try {
@@ -269,45 +290,28 @@ async function waitFor(check: () => Promise<boolean>, ms: number) {
 function launch(name: string, cmd: string, args: string[]) {
   const dir = path.join(home(), ".foreman-logs")
   mkdirSync(dir, { recursive: true })
-  const log = path.join(dir, `${name}.log`)
-  const out = openSync(log, "w")
+  const out = openSync(path.join(dir, `${name}.log`), "w")
   spawn(cmd, args, { cwd: home(), detached: true, stdio: ["ignore", out, out], env: { ...process.env, PATH: toolPath() } }).unref()
-  return log
 }
 
-async function ensureServer(progress: (m: string) => void) {
-  if (await healthy(LOCAL)) return
-  if (!(await reachable("http://127.0.0.1:7111", "/"))) {
-    progress("Starting Terse (durable actors)…")
-    launch("terse", "bun", ["run", "dev"])
-    if (!(await waitFor(() => reachable("http://127.0.0.1:7111", "/"), 120_000))) throw new Error("Terse didn't start; see .foreman-logs/terse.log")
+/** Make sure the room server answers at `url`; on the host's laptop, start Terse, the server and the named tunnel as needed. */
+async function ensureServer(url: string, progress: (m: string) => void) {
+  if (await healthy(url)) return
+  if (!(await healthy(LOCAL))) {
+    if (!(await reachable("http://127.0.0.1:7111", "/"))) {
+      progress("Starting Terse (durable actors)…")
+      launch("terse", "bun", ["run", "dev"])
+      if (!(await waitFor(() => reachable("http://127.0.0.1:7111", "/"), 120_000))) throw new Error("Terse didn't start; see .foreman-logs/terse.log")
+    }
+    progress("Starting the Foreman server…")
+    launch("server", "bun", ["src/server.ts"])
+    if (!(await waitFor(() => healthy(LOCAL), 60_000))) throw new Error("The Foreman server didn't start; see .foreman-logs/server.log")
   }
-  progress("Starting the Foreman server…")
-  launch("server", "bun", ["src/server.ts"])
-  if (!(await waitFor(() => healthy(LOCAL), 60_000))) throw new Error("Foreman server didn't start; see .foreman-logs/server.log")
-}
-
-/** A public https address for the server: a Cloudflare quick tunnel, or the LAN address if cloudflared isn't installed. */
-async function ensurePublicUrl(progress: (m: string) => void): Promise<string> {
-  const saved = existsSync(tunnelFile()) ? JSON.parse(readFileSync(tunnelFile(), "utf8")).url : undefined
-  if (saved && (await healthy(saved))) return saved
-  const hasCloudflared = spawnSync("cloudflared", ["--version"], { env: { ...process.env, PATH: toolPath() } }).status === 0
-  if (!hasCloudflared) {
-    const lan = Object.values(os.networkInterfaces()).flat().find(i => i?.family === "IPv4" && !i.internal)?.address
-    const pick = await vscode.window.showWarningMessage(
-      "cloudflared isn't installed, so teammates outside your Wi-Fi can't reach you. Install it with `brew install cloudflared`, or share your Wi-Fi address for now.",
-      ...(lan ? [`Use Wi-Fi address (${lan})`] : []),
-    )
-    if (!pick || !lan) throw new Error("No public address for the room")
-    return `http://${lan}:7300`
-  }
-  progress("Opening a public Cloudflare tunnel…")
-  const log = launch("tunnel", "cloudflared", ["tunnel", "--no-autoupdate", "--url", "http://localhost:7300"])
-  let url: string | null = null
-  await waitFor(async () => !!(url = tunnelUrl(readFileSync(log, "utf8"))), 45_000)
-  if (!url || !(await waitFor(() => healthy(url!), 45_000))) throw new Error("The Cloudflare tunnel didn't come up; see .foreman-logs/tunnel.log")
-  writeFileSync(tunnelFile(), JSON.stringify({ url }))
-  return url
+  if (url === LOCAL || (await healthy(url))) return
+  if (!existsSync(path.join(os.homedir(), ".cloudflared", "config.yml"))) throw new Error(`${url} isn't reachable, and there's no Cloudflare tunnel set up on this laptop.`)
+  progress(`Opening ${url}…`)
+  launch("tunnel", "cloudflared", ["tunnel", "--no-autoupdate", "run", "foreman"])
+  if (!(await waitFor(() => healthy(url), 60_000))) throw new Error(`${url} didn't come up; see .foreman-logs/tunnel.log`)
 }
 
 async function originUrl() {
@@ -316,54 +320,69 @@ async function originUrl() {
 
 async function inviteTeammate() {
   config = readConfig()
-  if (!config) return vscode.window.showWarningMessage("Start or join a room first.")
-  const publicUrl = existsSync(tunnelFile()) ? JSON.parse(readFileSync(tunnelFile(), "utf8")).url : config.url
+  if (!config?.code) return vscode.window.showWarningMessage("Start a room first.")
   const origin = await originUrl()
-  const msg = teammateMessage({
-    host: config.name,
-    cloneUrl: origin ? shareUrl(origin) : "<your repo URL>",
-    invite: encodeInvite({ url: publicUrl, repoId: config.repoId }),
-    freeColors: state ? freeColors(state, "") : Object.keys(COLOR_HEX).filter(c => c !== config!.color),
-  })
+  const msg = teammateMessage({ host: config.login ?? "Your teammate", cloneUrl: origin ? shareUrl(origin) : "<your repo URL>", code: config.code })
   await vscode.env.clipboard.writeText(msg)
-  const choice = await vscode.window.showInformationMessage(`Invite copied. Paste it to your teammate (it points at ${publicUrl}).`, "Show message")
+  const choice = await vscode.window.showInformationMessage(`Invite copied (room code ${formatCode(config.code)}). Paste it to your teammate.`, "Show message")
   if (choice) vscode.window.showTextDocument(await vscode.workspace.openTextDocument({ content: msg, language: "markdown" }))
 }
 
 async function createRoom() {
   if (!root) return vscode.window.showErrorMessage("Open your project folder first.")
-  const who = await pickPerson(LOCAL, "")
-  if (!who) return
   try {
-    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Foreman", cancellable: false }, async p => {
+    const token = await githubToken()
+    const color = await pickColor()
+    if (!color) return
+    const url = serverUrl()
+    let out = ""
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Foreman" }, async p => {
       const progress = (message: string) => p.report({ message })
-      await ensureServer(progress)
+      await ensureServer(url, progress)
       progress("Creating your room…")
-      await runCli(["init", "--url", LOCAL, "--name", who.name, "--color", who.color])
-      connect()
-      await ensurePublicUrl(progress)
+      out = await runCli(["init", "--url", url, "--color", color], { FOREMAN_GITHUB_TOKEN: token })
     })
-    await inviteTeammate()
+    connect()
+    const code = out.match(/Room code: (\S+)/)?.[1] ?? "?"
+    const pick = await vscode.window.showInformationMessage(`Room code: ${code}. Send it to your teammate; you'll get an Allow button when they ask to join.`, "Copy code", "Copy full invite")
+    if (pick === "Copy code") await vscode.env.clipboard.writeText(code)
+    if (pick === "Copy full invite") await inviteTeammate()
   } catch (e) {
     vscode.window.showErrorMessage(`Foreman: ${(e as Error).message}`)
   }
 }
 
 async function joinRoom() {
-  const code = await vscode.window.showInputBox({ prompt: "Paste the invite (fm_…)" })
-  if (!code) return
-  let invite
+  if (!root) return vscode.window.showErrorMessage("Open your clone of the project first.")
   try {
-    invite = decodeInvite(code.trim())
-  } catch {
-    return vscode.window.showErrorMessage("That isn't a Foreman invite.")
-  }
-  const who = await pickPerson(invite.url, invite.repoId)
-  if (!who) return
-  try {
-    await runCli(["join", code.trim(), "--name", who.name, "--color", who.color])
-    vscode.window.showInformationMessage(`Joined as ${who.name} (${who.color}). Open Claude Code in this repo and your agent appears here.`)
+    const token = await githubToken()
+    const raw = await vscode.window.showInputBox({ prompt: "Room code from your teammate", placeHolder: "K7QM-2XPA", validateInput: v => (normalizeCode(v) ? null : "Codes look like K7QM-2XPA") })
+    const code = raw && normalizeCode(raw)
+    if (!code) return
+    const url = serverUrl()
+    const peek = await fetch(`${url}/api/rooms/peek`, { method: "POST", body: JSON.stringify({ code }) })
+    if (!peek.ok) throw new Error(await peek.text())
+    const room = (await peek.json()) as { host: string; taken: string[] }
+    const color = await pickColor(room.taken)
+    if (!color) return
+    await runCli(["join", code, "--url", url, "--color", color, "--no-wait"], { FOREMAN_GITHUB_TOKEN: token })
+    config = readConfig()
+    const me = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `Waiting for @${room.host} to let you in…`, cancellable: true },
+      async (_p, cancel) => {
+        while (!cancel.isCancellationRequested) {
+          const m = await api<{ login: string; status: string; color: string }>("/api/me").catch(() => null)
+          if (!m) throw new Error(`@${room.host} didn't let you in.`)
+          if (m.status === "allowed") return m
+          await new Promise(r => setTimeout(r, 2000))
+        }
+        return null
+      },
+    )
+    if (!me) return
+    writeFileSync(configFile(), JSON.stringify({ ...readConfig(), login: me.login, color: me.color }, null, 2))
     connect()
+    vscode.window.showInformationMessage(`You're in as @${me.login} (${me.color}). Start Claude Code in this folder.`)
   } catch (e) {
     vscode.window.showErrorMessage(`Foreman: ${(e as Error).message}`)
   }
@@ -391,17 +410,18 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("foreman.joinRoom", joinRoom),
     vscode.commands.registerCommand("foreman.inviteTeammate", inviteTeammate),
     vscode.commands.registerCommand("foreman.copyInvite", async () => {
-      if (!config) return vscode.window.showWarningMessage("Not in a room yet.")
-      await vscode.env.clipboard.writeText(encodeInvite({ url: config.url, repoId: config.repoId }))
-      vscode.window.showInformationMessage("Invite copied.")
+      if (!config?.code) return vscode.window.showWarningMessage("Not in a room you started.")
+      await vscode.env.clipboard.writeText(formatCode(config.code))
+      vscode.window.showInformationMessage(`Room code ${formatCode(config.code)} copied.`)
     }),
+    vscode.commands.registerCommand("foreman.reviewRequest", (n: Node) => n?.login && askToAllow({ login: n.login, color: state?.access?.[n.login]?.color ?? "" })),
     vscode.commands.registerCommand("foreman.leaveRoom", async () => {
       await runCli(["leave"]).catch(e => vscode.window.showErrorMessage(`Foreman: ${e.message}`))
       connect()
     }),
     vscode.commands.registerCommand("foreman.revoke", async (n: Node) => {
       if (!config || !n?.lockKey) return
-      await fetch(`${config.url}/api/revoke`, { method: "POST", body: JSON.stringify({ repoId: config.repoId, key: n.lockKey }) })
+      await api("/api/revoke", { key: n.lockKey }).catch(e => vscode.window.showErrorMessage(`Foreman: ${e.message}`))
     }),
     vscode.commands.registerCommand("foreman.pullCommit", async () => {
       const sha = await vscode.window.showInputBox({ prompt: "Commit SHA to pull" })
@@ -415,7 +435,7 @@ export function activate(context: vscode.ExtensionContext) {
   const refreshHot = async () => {
     if (!config) return
     try {
-      hot = (await (await fetch(`${config.url}/api/hot`, { method: "POST", body: JSON.stringify({ repoId: config.repoId }) })).json()) as typeof hot
+      hot = await api<typeof hot>("/api/hot")
       changed.fire()
     } catch {}
   }

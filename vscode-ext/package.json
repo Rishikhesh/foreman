@@ -27,7 +27,7 @@
       },
       {
         "command": "foreman.copyInvite",
-        "title": "Foreman: Copy invite"
+        "title": "Foreman: Copy room code"
       },
       {
         "command": "foreman.revoke",
@@ -45,6 +45,10 @@
         "command": "foreman.inviteTeammate",
         "title": "Foreman: Invite teammate",
         "icon": "$(person-add)"
+      },
+      {
+        "command": "foreman.reviewRequest",
+        "title": "Foreman: Review join request"
       }
     ],
     "viewsContainers": {
@@ -67,7 +71,7 @@
     "viewsWelcome": [
       {
         "view": "foreman.room",
-        "contents": "Code together with your teammates' agents: live function locks, handoffs and caller warnings.\n[Start a room](command:foreman.createRoom)\nStarts the Foreman server and a public link on this laptop, then copies an invite for your teammate.\n[Join a room](command:foreman.joinRoom)\nPaste the invite a teammate sent you."
+        "contents": "Code together with your teammates' agents: live function locks, handoffs and caller warnings.\n[Start a room](command:foreman.createRoom)\nSign in with GitHub, pick a colour, and get a short code to send your teammate.\n[Join a room](command:foreman.joinRoom)\nSign in with GitHub and enter the code your teammate sent."
       }
     ],
     "menus": {

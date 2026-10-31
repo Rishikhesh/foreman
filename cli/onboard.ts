@@ -1,17 +1,5 @@
 export const COLORS = ["blue", "orange", "green", "purple", "pink", "teal"]
 
-export interface Invite { url: string; repoId: string }
-
-export const encodeInvite = (inv: Invite) => "fm_" + Buffer.from(JSON.stringify(inv)).toString("base64url")
-
-export function decodeInvite(code: string): Invite {
-  try {
-    const inv = JSON.parse(Buffer.from(code.replace(/^fm_/, ""), "base64url").toString())
-    if (typeof inv.url === "string" && typeof inv.repoId === "string") return { url: inv.url, repoId: inv.repoId }
-  } catch {}
-  throw new Error("invalid invite code")
-}
-
 type Settings = Record<string, any> & { hooks?: Record<string, any[]> }
 
 const isOurs = (entry: any) => entry.hooks?.some((h: any) => /foreman\.ts hook /.test(h.command ?? ""))

@@ -22,11 +22,14 @@ for (const p of people) {
 }
 writeFileSync(path.join(repo, ".demo/base"), base)
 
+// A fresh room every run, with demo identities (accepted only from this laptop)
+for (const p of people) await $`bun ${cli} leave`.cwd(p.dir).quiet().nothrow()
 const [host, guest] = people
-const init = await $`bun ${cli} init --url ${url} --name ${host.name} --color ${host.color}`.cwd(host.dir).text()
-const invite = init.match(/foreman join (fm_\S+)/)?.[1]
-if (!invite) throw new Error(`init did not print an invite:\n${init}`)
-await $`bun ${cli} join ${invite} --name ${guest.name} --color ${guest.color}`.cwd(guest.dir).quiet()
+const init = await $`bun ${cli} init --url ${url} --color ${host.color} --dev ${host.name}`.cwd(host.dir).text()
+const code = init.match(/Room code: (\S+)/)?.[1]
+if (!code) throw new Error(`init did not print a room code:\n${init}`)
+await $`bun ${cli} join ${code} --url ${url} --color ${guest.color} --dev ${guest.name} --no-wait`.cwd(guest.dir).quiet()
+await $`bun ${cli} allow ${guest.name}`.cwd(host.dir).quiet()
 
 const extDir = path.join(os.homedir(), ".vscode/extensions/foreman.foreman-dev")
 await $`ln -sfn ${path.join(repo, "vscode-ext")} ${extDir}`
@@ -34,5 +37,5 @@ await $`ln -sfn ${path.join(repo, "vscode-ext")} ${extDir}`
 console.log(`Demo ready (base ${base.slice(0, 7)}).
   Blue window:   code -n ${host.dir}
   Orange window: code -n ${guest.dir}
-Open demo/sample/src/auth.ts in both (trust the folder if VS Code asks), then run:  bun demo/simulate.ts
-Invite for a real teammate's clone:  foreman join ${invite}`)
+Room ${code}: rishi (blue) is the host and has let friend (orange) in.
+Open demo/sample/src/auth.ts in both (trust the folder if VS Code asks), then run:  bun demo/simulate.ts`)

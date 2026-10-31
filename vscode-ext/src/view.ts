@@ -87,3 +87,13 @@ export function callerWarnings(state: RepoState, file: string, source: string) {
     }
   return out
 }
+
+/** People asking to join, for the host's Requests list. */
+export const pendingRequests = (state: RepoState) =>
+  Object.values(state.access ?? {}).filter(m => m.status === "pending").map(m => ({ login: m.login, color: m.color }))
+
+/** Requests that weren't there before this update (for the Allow pop-up). */
+export function newRequests(prev: RepoState | null, next: RepoState) {
+  const seen = new Set(prev ? pendingRequests(prev).map(r => r.login) : [])
+  return pendingRequests(next).filter(r => !seen.has(r.login))
+}
