@@ -3,3 +3,4 @@ node_modules
 .durable-actors
 generated
 .DS_Store
+.DS_Store
