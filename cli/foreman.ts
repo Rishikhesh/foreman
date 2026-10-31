@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
-import { readFileSync, realpathSync } from "node:fs"
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import type { AgentRef, Blocked, Notice, RepoState } from "../src/core/types.js"
 import { fileOf } from "../src/core/locks.js"
 import * as g from "./git.js"
+import { COLORS, decodeInvite, encodeInvite, gitHookScript, mergeHooks } from "./onboard.js"
 import { agentFor, contextOutput, denyOutput, describe, editPlan, renderDeny, renderNotice, stopDecision } from "./hook.js"
 
 const CLI_TIMEOUT_MS = 2000
@@ -134,6 +135,28 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     return 1
   },
 
+  async init(args) {
+    const cwd = process.cwd()
+    const root = await requireRepo(cwd)
+    const url = flag(args, "--url") ?? process.env.FOREMAN_URL ?? "http://127.0.0.1:7300"
+    const repoId = await g.repoId(root)
+    await enter(root, url, repoId, args)
+    const code = encodeInvite({ url, repoId })
+    console.log(`\nRoom ready. Send this to your teammate privately:\n\n  foreman join ${code}\n\nBoard: ${url}/board?repo=${repoId}`)
+  },
+
+  async join(args) {
+    const cwd = process.cwd()
+    const root = await requireRepo(cwd)
+    const { url, repoId } = decodeInvite(args[0] ?? "")
+    if ((await g.repoId(root)) !== repoId) {
+      console.error("This clone is a different repo than the room you're joining. Run join inside your clone of the same GitHub repo.")
+      return 1
+    }
+    await enter(root, url, repoId, args.slice(1))
+    console.log(`\nJoined. Open Claude Code here and your agent appears on the board: ${url}/board?repo=${repoId}`)
+  },
+
   async status() {
     const cwd = process.cwd()
     const { url, repoId } = await ctx(cwd)
@@ -145,6 +168,45 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
       console.log(`${describe(l.key)} — ${l.holder.label}${q.length ? `, waiting: ${q.join(", ")}` : ""}`)
     }
   },
+}
+
+const flag = (args: string[], name: string) => {
+  const i = args.indexOf(name)
+  return i >= 0 ? args[i + 1] : undefined
+}
+
+async function requireRepo(cwd: string) {
+  const root = await g.worktreeRoot(cwd)
+  if (!root) throw new UserError("Not a git repo. Run this inside your clone of the project.")
+  return root
+}
+
+class UserError extends Error {}
+
+/** Join the room (colour check), save config, install Claude Code and git hooks. */
+async function enter(root: string, url: string, repoId: string, args: string[]) {
+  const name = (flag(args, "--name") ?? (await g.userName(root)).split(/\s+/)[0]).toLowerCase()
+  const color = flag(args, "--color") ?? COLORS[0]
+  const r = await call<{ ok: boolean; taken?: string[] }>(url, "/api/join", { repoId, person: { name, color } })
+  if (!r.ok) throw new UserError(`Colour ${color} is taken. Free: ${COLORS.filter(c => !r.taken?.includes(c)).join(", ")}. Pass --color <name>.`)
+  await g.writeConfig(root, { url, repoId, name, color })
+  const cli = path.resolve(import.meta.path)
+  const settingsFile = path.join(root, ".claude", "settings.local.json")
+  mkdirSync(path.dirname(settingsFile), { recursive: true })
+  const settings = existsSync(settingsFile) ? JSON.parse(readFileSync(settingsFile, "utf8")) : {}
+  writeFileSync(settingsFile, JSON.stringify(mergeHooks(settings, cli), null, 2))
+  const hooksDir = await g.hooksDir(root)
+  mkdirSync(hooksDir, { recursive: true })
+  for (const h of ["post-commit", "pre-commit"] as const) {
+    const f = path.join(hooksDir, h)
+    if (existsSync(f) && !readFileSync(f, "utf8").includes("installed by foreman")) {
+      console.error(`foreman: ${f} already exists and isn't ours; add \`bun ${cli} git ${h}\` to it yourself.`)
+      continue
+    }
+    writeFileSync(f, gitHookScript(cli, h))
+    chmodSync(f, 0o755)
+  }
+  console.log(`You're ${name} (${color}). Hooks installed for Claude Code and git.`)
 }
 
 async function main() {
@@ -159,6 +221,14 @@ async function main() {
   try {
     return (await commands[name](argv.slice(name.split(" ").length), stdin)) ?? 0
   } catch (e) {
+    if (e instanceof UserError || (e instanceof Error && e.message === "invalid invite code")) {
+      console.error(e.message)
+      return 1
+    }
+    if (e instanceof Unreachable && (name === "init" || name === "join")) {
+      console.error(`Can't reach the Foreman server (${e.message}). Is it running?`)
+      return 1
+    }
     if (e instanceof Unreachable) {
       console.error(`foreman: server unreachable, allowing (${e.message})`)
       return 0

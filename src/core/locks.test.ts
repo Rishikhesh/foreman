@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { claim, emptyState, expire, isWaiting, releaseAll, releaseFiles, takeNotices, touch, TTL_MS } from "./locks.js"
+import { claim, emptyState, expire, isWaiting, joinRoom, releaseAll, releaseFiles, takeNotices, touch, TTL_MS } from "./locks.js"
 import type { AgentRef } from "./types.js"
 
 const A: AgentRef = { id: "claude:a", label: "claude@rishi" }
@@ -112,4 +112,38 @@ test("does not mutate its input", () => {
   const s = Object.freeze(emptyState())
   expect(() => claim(s, A, [V], 1)).not.toThrow()
   expect(s.locks).toEqual({})
+})
+
+test("joinRoom adds a person and refuses a colour another person holds", () => {
+  let r = joinRoom(emptyState(), { name: "rishi", color: "blue" })
+  expect(r.value).toEqual({ ok: true })
+  expect(r.state.people).toEqual({ rishi: { name: "rishi", color: "blue" } })
+  expect(joinRoom(r.state, { name: "rishi", color: "blue" }).value).toEqual({ ok: true })
+  const taken = joinRoom(r.state, { name: "friend", color: "blue" })
+  expect(taken.value).toEqual({ ok: false, taken: ["blue"] })
+  expect(taken.state.people.friend).toBeUndefined()
+  r = joinRoom(r.state, { name: "friend", color: "orange" })
+  expect(Object.keys(r.state.people)).toEqual(["rishi", "friend"])
+  expect(r.events).toEqual([{ type: "joined", agent: { id: "person:friend", label: "friend", color: "orange" } }])
+})
+
+test("any activity by the holder keeps all its locks alive; only an idle agent loses them", () => {
+  let s = claim(emptyState(), A, [V], 0).state
+  s = claim(s, B, [V], 1).state
+  // A works elsewhere for longer than the idle limit, touching other files
+  for (let t = 60_000; t <= TTL_MS + 60_000; t += 60_000) s = touch(s, A, "src/other.ts", 1, "edit", t).state
+  expect(expire(s, TTL_MS + 60_000).value.expired).toEqual([])
+  expect(s.locks[V].holder.id).toBe("claude:a")
+  // A goes silent: after the idle limit the lock passes to B
+  const r = expire(s, TTL_MS + 60_000 + TTL_MS)
+  expect(r.value.expired).toEqual([V])
+  expect(r.state.locks[V].holder.id).toBe("claude:b")
+})
+
+test("the idle limit is 15 minutes", () => expect(TTL_MS).toBe(15 * 60_000))
+
+test("checking the mailbox (after any tool, e.g. Bash) also counts as activity", () => {
+  let s = claim(emptyState(), A, [V], 0).state
+  s = takeNotices(s, A.id, TTL_MS - 1).state
+  expect(expire(s, TTL_MS + 1).value.expired).toEqual([])
 })

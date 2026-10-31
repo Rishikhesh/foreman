@@ -52,3 +52,5 @@ export async function headCommit(cwd: string): Promise<{ info: CommitInfo; files
 export const pushCommit = async (cwd: string, sha: string) => (await git(cwd, "push", "-q", "origin", `HEAD:refs/foreman/${sha}`)).exitCode === 0
 
 export const stagedFiles = async (cwd: string) => (await text(cwd, "diff", "--cached", "--name-only")).split("\n").filter(Boolean)
+
+export const hooksDir = async (cwd: string) => path.resolve(cwd, await text(cwd, "rev-parse", "--git-path", "hooks"))

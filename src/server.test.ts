@@ -46,3 +46,10 @@ test("unknown route is 404 and bad JSON is 400", async () => {
   expect((await fetch(new URL("/api/claim", server.url), { method: "POST", body: "not json" })).status).toBe(400)
   expect(await (await fetch(new URL("/api/health", server.url))).text()).toBe("ok")
 })
+
+test("join adds people to the room and refuses a taken colour", async () => {
+  const room = `test-${crypto.randomUUID().slice(0, 8)}`
+  expect(await post("/api/join", { repoId: room, person: { name: "rishi", color: "blue" } })).toEqual({ ok: true })
+  expect(await post("/api/join", { repoId: room, person: { name: "friend", color: "blue" } })).toEqual({ ok: false, taken: ["blue"] })
+  expect((await post("/api/status", { repoId: room })).people.rishi.color).toBe("blue")
+})

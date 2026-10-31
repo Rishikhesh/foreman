@@ -1,6 +1,6 @@
 import { Actor, Emittable, Persisted } from "durable-actors"
 import * as core from "./core/locks.js"
-import type { AgentId, AgentRef, CommitInfo, FEvent, LockKey, RepoState, Result } from "./core/types.js"
+import type { AgentId, AgentRef, CommitInfo, FEvent, LockKey, Person, RepoState, Result } from "./core/types.js"
 
 const TTL = Number(process.env.FOREMAN_TTL_MS ?? core.TTL_MS)
 
@@ -31,8 +31,11 @@ export class RepoActor extends Actor<Record<string, never>, never, Out> {
   async touch(agent: AgentRef, file: string, line: number | null, mode: "read" | "edit") {
     return this.#apply(core.touch(this.state, agent, file, line ?? undefined, mode, Date.now()))
   }
+  async join(person: Person) {
+    return this.#apply(core.joinRoom(this.state, person))
+  }
   async takeNotices(agentId: AgentId) {
-    return this.#apply(core.takeNotices(this.state, agentId))
+    return this.#apply(core.takeNotices(this.state, agentId, Date.now()))
   }
   async isWaiting(agentId: AgentId): Promise<boolean> {
     return core.isWaiting(this.state, agentId)

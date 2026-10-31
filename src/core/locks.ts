@@ -1,8 +1,9 @@
-import type { AgentId, AgentRef, Blocked, CommitInfo, FEvent, LockKey, Notice, RepoState, Result } from "./types.js"
+import type { AgentId, AgentRef, Blocked, CommitInfo, FEvent, LockKey, Notice, Person, RepoState, Result } from "./types.js"
 
-export const TTL_MS = 20 * 60_000
+/** A lock is freed only after its holder has been completely idle (no hook activity at all) this long. */
+export const TTL_MS = 15 * 60_000
 
-export const emptyState = (): RepoState => ({ locks: {}, queues: {}, outbox: {}, seen: {}, members: {}, cursors: {} })
+export const emptyState = (): RepoState => ({ locks: {}, queues: {}, outbox: {}, seen: {}, members: {}, cursors: {}, people: {} })
 
 export const fileOf = (key: LockKey) => key.slice(0, key.lastIndexOf("#"))
 
@@ -88,8 +89,9 @@ export function expire(s0: RepoState, now: number, ttlMs = TTL_MS): Result<{ exp
   return { state: s, events, value: { expired: stale.map(l => l.key) } }
 }
 
-export function takeNotices(s0: RepoState, id: AgentId): Result<Notice[]> {
+export function takeNotices(s0: RepoState, id: AgentId, now?: number): Result<Notice[]> {
   const s = structuredClone(s0)
+  if (now !== undefined) for (const l of Object.values(s.locks)) if (l.holder.id === id) l.touched = now
   const value = s.outbox[id] ?? []
   s.outbox[id] = []
   return { state: s, events: [], value }
@@ -101,6 +103,7 @@ export function touch(s0: RepoState, agent: AgentRef, file: string, line: number
   const s = structuredClone(s0)
   s.members[agent.id] = agent
   s.cursors[agent.id] = { file, ...(line !== undefined && { line }), mode, at: now }
+  for (const l of Object.values(s.locks)) if (l.holder.id === agent.id) l.touched = now
   if (!(s.seen[agent.id] ?? []).includes(file)) s.seen[agent.id] = [...(s.seen[agent.id] ?? []), file]
   return { state: s, events: [], value: null }
 }
@@ -108,4 +111,16 @@ export function touch(s0: RepoState, agent: AgentRef, file: string, line: number
 export function nextAlarm(s: RepoState, ttlMs = TTL_MS): number | null {
   const t = Object.values(s.locks).map(l => l.touched)
   return t.length ? Math.min(...t) + ttlMs : null
+}
+
+/** A person (not an agent) joins the room with a colour no one else holds. */
+export function joinRoom(s0: RepoState, person: Person): Result<{ ok: true } | { ok: false; taken: string[] }> {
+  const s = structuredClone(s0)
+  s.people ??= {}
+  const taken = Object.values(s.people).filter(p => p.name !== person.name).map(p => p.color)
+  if (taken.includes(person.color)) return { state: s0, events: [], value: { ok: false, taken } }
+  const isNew = !s.people[person.name]
+  s.people[person.name] = person
+  const events: FEvent[] = isNew ? [{ type: "joined", agent: { id: `person:${person.name}`, label: person.name, color: person.color } }] : []
+  return { state: s, events, value: { ok: true } }
 }
