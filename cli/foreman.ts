@@ -5,6 +5,7 @@ import path from "node:path"
 import type { AgentRef, Blocked, Notice, RepoState } from "../src/core/types.js"
 import { callersOf, changedLines, keysForLines, signatureChanges } from "../src/core/symbols.js"
 import * as g from "./git.js"
+import { formatCode, makeCode, normalizeCode } from "./code.js"
 import { COLORS, decodeInvite, encodeInvite, GIT_HOOKS, gitHookScript, mergeHooks, removeHooks } from "./onboard.js"
 import { agentFor, contextOutput, denyOutput, describe, editPlan, renderDeny, renderNotice, stopDecision } from "./hook.js"
 
@@ -17,8 +18,8 @@ class Unreachable extends Error {}
 async function ctx(cwd: string) {
   const cfg = await g.readConfig(cwd)
   return {
-    url: process.env.FOREMAN_URL ?? cfg.url ?? "http://127.0.0.1:7300",
-    repoId: process.env.FOREMAN_REPO_ID ?? cfg.repoId ?? (await g.repoId(cwd)),
+    url: process.env.FOREMAN_URL || cfg.url || "http://127.0.0.1:7300",
+    repoId: process.env.FOREMAN_REPO_ID || cfg.room || cfg.repoId || (await g.repoId(cwd)),
     cfg,
   }
 }
@@ -166,33 +167,70 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
   },
 
   async init(args) {
-    const cwd = process.cwd()
-    const root = await requireRepo(cwd)
-    const url = flag(args, "--url") ?? process.env.FOREMAN_URL ?? "http://127.0.0.1:7300"
+    const root = await requireRepo(process.cwd())
+    const url = flag(args, "--url") ?? (process.env.FOREMAN_URL || "http://127.0.0.1:7300")
+    const publicUrl = flag(args, "--public-url") ?? url
     const repoId = await g.repoId(root)
-    await enter(root, url, repoId, args)
-    const code = encodeInvite({ url, repoId })
-    console.log(`\nRoom ready. Send this to your teammate privately:\n\n  foreman join ${code}\n\nOpen this folder in VS Code to see the room in the Foreman sidebar.`)
+    const code = makeCode()
+    const room = `${repoId}-${code}`
+    await enter(root, url, room, args, code)
+    const published = await g.publishRoom(root, code, { url: publicUrl, room, repoId })
+    if (!published) console.error("foreman: couldn't publish the room code to the repo (no push access?). Share the long invite below instead.")
+    console.log(`\nRoom code: ${formatCode(code)}\nYour teammate runs \`foreman join ${formatCode(code)}\` in their clone, or uses Join a room in VS Code.`)
+    console.log(`Long invite (works without repo access): foreman join ${encodeInvite({ url: publicUrl, repoId: room })}`)
+  },
+
+  async lookup(args) {
+    const root = await requireRepo(process.cwd())
+    const code = normalizeCode(args[0] ?? "")
+    if (!code) throw new UserError(`"${args[0] ?? ""}" isn't a room code. It looks like K7QM-2XPA.`)
+    const info = await g.readRoom(root, code)
+    if (!info) throw new UserError(`No room with code ${formatCode(code)} in this repo. Check the code with whoever sent it.`)
+    console.log(JSON.stringify(info))
+  },
+
+  async publish(args) {
+    const root = await requireRepo(process.cwd())
+    const cfg = await g.readConfig(root)
+    const url = flag(args, "--public-url")
+    if (!cfg.code || !cfg.room || !url) throw new UserError("Usage: foreman publish --public-url <https address> (in a room you started)")
+    if (!(await g.publishRoom(root, cfg.code, { url, room: cfg.room, repoId: cfg.room.split("-")[0] }))) throw new UserError("Couldn't push the room to the repo.")
+    console.log(`Room ${formatCode(cfg.code)} now points teammates at ${url}`)
+  },
+
+  async "install-extension"() {
+    linkExtension(path.resolve(import.meta.path), true)
+    console.log("Foreman's VS Code extension is installed. Quit and reopen VS Code to load it.")
   },
 
   async join(args) {
-    const cwd = process.cwd()
-    const root = await requireRepo(cwd)
-    const { url, repoId } = decodeInvite(args[0] ?? "")
-    if ((await g.repoId(root)) !== repoId) {
+    const root = await requireRepo(process.cwd())
+    const arg = args[0] ?? ""
+    let url: string, room: string
+    if (arg.startsWith("fm_")) ({ url, repoId: room } = decodeInvite(arg))
+    else {
+      const code = normalizeCode(arg)
+      if (!code) throw new UserError(`"${arg}" isn't a room code. It looks like K7QM-2XPA.`)
+      const info = await g.readRoom(root, code)
+      if (!info) throw new UserError(`No room with code ${formatCode(code)} in this repo. Check the code with whoever sent it.`)
+      ;({ url, room } = info)
+    }
+    if ((await g.repoId(root)) !== room.split("-")[0]) {
       console.error("This clone is a different repo than the room you're joining. Run join inside your clone of the same GitHub repo.")
       return 1
     }
-    await enter(root, url, repoId, args.slice(1))
+    await enter(root, url, room, args.slice(1))
     console.log(`\nJoined. Open this folder in VS Code (Foreman sidebar) and start Claude Code here.`)
   },
 
   async invite(args) {
     const root = await requireRepo(process.cwd())
     const cfg = await g.readConfig(root)
-    if (!cfg.repoId || !cfg.url) throw new UserError("Not in a room yet. Run `foreman init` first.")
+    const room = cfg.room ?? cfg.repoId
+    if (!room || !cfg.url) throw new UserError("Not in a room yet. Run `foreman init` first.")
     const url = (flag(args, "--url") ?? cfg.url).replace(/\/$/, "")
-    console.log(`Send this to your teammate privately:\n\n  foreman join ${encodeInvite({ url, repoId: cfg.repoId })}`)
+    if (cfg.code) console.log(`Room code: ${formatCode(cfg.code)}`)
+    console.log(`Send this to your teammate privately:\n\n  foreman join ${encodeInvite({ url, repoId: room })}`)
   },
 
   async leave() {
@@ -254,12 +292,12 @@ async function requireRepo(cwd: string) {
 class UserError extends Error {}
 
 /** Join the room (colour check), save config, install Claude Code and git hooks. */
-async function enter(root: string, url: string, repoId: string, args: string[]) {
+async function enter(root: string, url: string, room: string, args: string[], code?: string) {
   const name = (flag(args, "--name") ?? (await g.userName(root)).split(/\s+/)[0]).toLowerCase()
   const color = flag(args, "--color") ?? COLORS[0]
-  const r = await call<{ ok: boolean; taken?: string[] }>(url, "/api/join", { repoId, person: { name, color } })
+  const r = await call<{ ok: boolean; taken?: string[] }>(url, "/api/join", { repoId: room, person: { name, color } })
   if (!r.ok) throw new UserError(`Colour ${color} is taken. Free: ${COLORS.filter(c => !r.taken?.includes(c)).join(", ")}. Pass --color <name>.`)
-  await g.writeConfig(root, { url, repoId, name, color })
+  await g.writeConfig(root, { url, repoId: room.split("-")[0], room, ...(code && { code }), name, color })
   const cli = path.resolve(import.meta.path)
   const settingsFile = path.join(root, ".claude", "settings.local.json")
   mkdirSync(path.dirname(settingsFile), { recursive: true })
@@ -281,12 +319,12 @@ async function enter(root: string, url: string, repoId: string, args: string[]) 
 }
 
 /** Link this repo's VS Code extension into ~/.vscode/extensions (no packaging). Returns true when it was newly linked. */
-function linkExtension(cli: string): boolean {
+function linkExtension(cli: string, force = false): boolean {
   const target = path.join(path.dirname(cli), "..", "vscode-ext")
   const dir = path.join(process.env.HOME ?? os.homedir(), ".vscode", "extensions")
   const link = path.join(dir, "foreman.foreman-dev")
   try {
-    if (existsSync(link) && realpathSync(link) === realpathSync(target)) return false
+    if (existsSync(link) && realpathSync(link) === realpathSync(target)) return force
     mkdirSync(dir, { recursive: true })
     rmSync(link, { force: true })
     symlinkSync(realpathSync(target), link)

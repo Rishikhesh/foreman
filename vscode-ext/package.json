@@ -90,8 +90,8 @@
       "properties": {
         "foreman.serverUrl": {
           "type": "string",
-          "default": "",
-          "description": "Overrides the server URL saved by Create/Join room."
+          "default": "https://foreman.rishikhesh.com",
+          "description": "The Foreman server everyone in your team connects to."
         }
       }
     }
