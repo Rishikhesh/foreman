@@ -25,6 +25,15 @@ const step = async (msg: string) => {
   await Bun.sleep(3000)
 }
 
+// Fresh start every run: empty the room and put both worktrees back on the first demo commit.
+const cfg = JSON.parse(readFileSync(path.join(rishi.dir, ".git/foreman.json"), "utf8"))
+const api = (route: string, body: object) => fetch(`${cfg.url}${route}`, { method: "POST", body: JSON.stringify({ repoId: cfg.repoId, ...body }) }).then(r => r.json())
+const room = await api("/api/status", {})
+for (const agent of Object.values(room.members ?? {})) await api("/api/release-all", { agent })
+const base = (await $`git -C ${rishi.dir} rev-list --max-parents=0 HEAD`.text()).trim()
+for (const who of [rishi, friend]) await $`git -C ${who.dir} reset -q --hard ${base}`.quiet()
+console.log(`room cleared, both worktrees reset to ${base.slice(0, 7)}`)
+
 await step("blue (rishi) reads auth.ts")
 await hook(rishi, "pre-tool", "Read", { file_path: file(rishi), offset: 3 })
 await step("orange (friend) reads auth.ts")

@@ -4,24 +4,60 @@
   "description": "Google Docs for coding agents: live function locks, agent cursors and handoffs in your editor.",
   "publisher": "foreman",
   "version": "0.1.0",
-  "engines": { "vscode": "^1.90.0" },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
   "main": "./dist/extension.js",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
-      { "command": "foreman.createRoom", "title": "Foreman: Create room" },
-      { "command": "foreman.joinRoom", "title": "Foreman: Join room" },
-      { "command": "foreman.leaveRoom", "title": "Foreman: Leave room" },
-      { "command": "foreman.copyInvite", "title": "Foreman: Copy invite" },
-      { "command": "foreman.revoke", "title": "Revoke lock" },
-      { "command": "foreman.pullCommit", "title": "Foreman: Pull handed-off commit" },
-      { "command": "foreman.reload", "title": "Foreman: Update (git pull) and reload" }
+      {
+        "command": "foreman.createRoom",
+        "title": "Foreman: Create room"
+      },
+      {
+        "command": "foreman.joinRoom",
+        "title": "Foreman: Join room"
+      },
+      {
+        "command": "foreman.leaveRoom",
+        "title": "Foreman: Leave room"
+      },
+      {
+        "command": "foreman.copyInvite",
+        "title": "Foreman: Copy invite"
+      },
+      {
+        "command": "foreman.revoke",
+        "title": "Revoke lock"
+      },
+      {
+        "command": "foreman.pullCommit",
+        "title": "Foreman: Pull handed-off commit"
+      },
+      {
+        "command": "foreman.reload",
+        "title": "Foreman: Update (git pull) and reload"
+      }
     ],
     "viewsContainers": {
-      "activitybar": [{ "id": "foreman", "title": "Foreman", "icon": "$(organization)" }]
+      "activitybar": [
+        {
+          "id": "foreman",
+          "title": "Foreman",
+          "icon": "media/foreman.svg"
+        }
+      ]
     },
     "views": {
-      "foreman": [{ "id": "foreman.room", "name": "Room" }]
+      "foreman": [
+        {
+          "id": "foreman.room",
+          "name": "Room"
+        }
+      ]
     },
     "viewsWelcome": [
       {
@@ -30,13 +66,28 @@
       }
     ],
     "menus": {
-      "view/item/context": [{ "command": "foreman.revoke", "when": "view == foreman.room && viewItem == lock" }]
+      "view/item/context": [
+        {
+          "command": "foreman.revoke",
+          "when": "view == foreman.room && viewItem == lock"
+        }
+      ]
     },
     "configuration": {
       "title": "Foreman",
       "properties": {
-        "foreman.serverUrl": { "type": "string", "default": "", "description": "Overrides the server URL saved by Create/Join room." }
+        "foreman.serverUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Overrides the server URL saved by Create/Join room."
+        }
       }
+    }
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Live view works everywhere; Create/Join room run the Foreman CLI and need a trusted folder."
     }
   }
 }
