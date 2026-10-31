@@ -36,9 +36,10 @@ export function rangesForLocks(state: RepoState, file: string, source: string): 
 
 const age = (ms: number) => (ms < 60_000 ? "<1m" : `${Math.floor(ms / 60_000)}m`)
 
-export function lensText(lock: Pick<Lock, "holder" | "since"> | undefined, waiting: AgentRef[], now = Date.now()): string {
-  if (!lock) return "Free"
-  return `Locked by ${lock.holder.label} · ${age(now - lock.since)}${waiting.length ? ` · ${waiting.length} waiting` : ""}`
+export function lensText(lock: Pick<Lock, "holder" | "since"> | undefined, waiting: AgentRef[], now = Date.now(), activity?: "editing" | "reading"): string {
+  if (!lock) return "○ Free"
+  const parts = [`🔒 ${lock.holder.label}`, activity, age(now - lock.since), waiting.length ? `⏳ ${waiting.map(w => w.label).join(", ")} waiting` : ""]
+  return parts.filter(Boolean).join(" · ")
 }
 
 /** Locks whose holder just changed to one of my agents. */

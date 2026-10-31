@@ -38,10 +38,11 @@ test("a <file> lock covers every line", () => {
   expect(rangesForLocks(s, "README.md", "a\nb\nc\n")).toEqual([{ key: "README.md#<file>", name: "whole file", holder: B, start: 1, end: 4, waiting: [] }])
 })
 
-test("lensText", () => {
-  expect(lensText(undefined, [])).toBe("Free")
-  expect(lensText({ holder: A, since: 0 }, [], 125_000)).toBe("Locked by claude@rishi · 2m")
-  expect(lensText({ holder: A, since: 0 }, [B], 30_000)).toBe("Locked by claude@rishi · <1m · 1 waiting")
+test("lensText puts everything about a function on one line above it", () => {
+  expect(lensText(undefined, [])).toBe("○ Free")
+  expect(lensText({ holder: A, since: 0 }, [], 125_000)).toBe("🔒 claude@rishi · 2m")
+  expect(lensText({ holder: A, since: 0 }, [B], 30_000, "editing")).toBe("🔒 claude@rishi · editing · <1m · ⏳ claude@friend waiting")
+  expect(lensText({ holder: A, since: 0 }, [B, { id: "c", label: "claude@third" }], 30_000)).toBe("🔒 claude@rishi · <1m · ⏳ claude@friend, claude@third waiting")
 })
 
 test("newHandoffs reports only locks that just became mine, with the commit", () => {

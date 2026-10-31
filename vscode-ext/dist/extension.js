@@ -168868,10 +168868,11 @@ function rangesForLocks(state, file, source) {
   return out;
 }
 var age = (ms) => ms < 60000 ? "<1m" : `${Math.floor(ms / 60000)}m`;
-function lensText(lock, waiting, now = Date.now()) {
+function lensText(lock, waiting, now = Date.now(), activity) {
   if (!lock)
-    return "Free";
-  return `Locked by ${lock.holder.label} · ${age(now - lock.since)}${waiting.length ? ` · ${waiting.length} waiting` : ""}`;
+    return "○ Free";
+  const parts = [`\uD83D\uDD12 ${lock.holder.label}`, activity, age(now - lock.since), waiting.length ? `⏳ ${waiting.map((w) => w.label).join(", ")} waiting` : ""];
+  return parts.filter(Boolean).join(" · ");
 }
 function newHandoffs(prev, next, mine) {
   return Object.values(next.locks).filter((l) => mine.includes(l.holder.id) && prev?.locks[l.key]?.holder.id !== l.holder.id && l.from).map((l) => ({ key: l.key, from: l.from, ...l.commit && { commit: l.commit } }));
@@ -168993,30 +168994,23 @@ function decorate(editor) {
     const now = Date.now();
     for (const r of rangesForLocks(state, file, editor.document.getText())) {
       const color = hex(r.holder);
-      const lock = state.locks[r.key];
-      const label = `\uD83D\uDD12 ${r.holder.label}${r.waiting.length ? ` · waiting: ${r.waiting.map((w) => w.label).join(", ")}` : ""}`;
       const range = new vscode.Range(r.start - 1, 0, r.end - 1, 0);
       locks.set(color, [...locks.get(color) ?? [], { range, hoverMessage: `${r.name} is locked by ${r.holder.label}` }]);
-      const eol = editor.document.lineAt(r.start - 1).range.end;
-      locks.set(`${color}-label`, [...locks.get(`${color}-label`) ?? [], { range: new vscode.Range(eol, eol), renderOptions: { after: { contentText: `   ${label}` } } }]);
     }
     for (const c of cursorsInFile(state, file, now)) {
       const line = Math.min(c.line, editor.document.lineCount) - 1;
       const color = hex(c.agent);
-      const eol = editor.document.lineAt(line).range.end;
-      cursors.set(color, [...cursors.get(color) ?? [], { range: new vscode.Range(eol, eol), renderOptions: { after: { contentText: `   ◀ ${c.agent.label} · ${c.mode === "edit" ? "editing" : "reading"}` } } }]);
+      cursors.set(color, [...cursors.get(color) ?? [], { range: new vscode.Range(line, 0, line, 0), hoverMessage: `${c.agent.label} is ${c.mode === "edit" ? "editing" : "reading"} here` }]);
     }
   }
   for (const color of Object.values(COLOR_HEX).concat("#888780")) {
     editor.setDecorations(style(lockStyles, color, (c) => ({ isWholeLine: true, backgroundColor: `${c}1f`, borderWidth: "0 0 0 3px", borderStyle: "solid", borderColor: c, overviewRulerColor: c })), locks.get(color) ?? []);
-    editor.setDecorations(style(lockStyles, `${color}-label`, () => ({ after: { color, fontStyle: "italic" } })), locks.get(`${color}-label`) ?? []);
-    editor.setDecorations(style(cursorStyles, color, () => ({ after: { color, fontWeight: "bold" }, borderWidth: "0 0 0 2px", borderStyle: "solid", borderColor: color })), cursors.get(color) ?? []);
+    editor.setDecorations(style(cursorStyles, color, () => ({ isWholeLine: true, backgroundColor: `${color}40`, borderWidth: "0 0 0 6px", borderStyle: "solid", borderColor: color })), cursors.get(color) ?? []);
   }
 }
 var warnStyle = vscode.window.createTextEditorDecorationType({
   textDecoration: "underline wavy #EF9F27",
-  overviewRulerColor: "#EF9F27",
-  after: { color: "#EF9F27", fontStyle: "italic" }
+  overviewRulerColor: "#EF9F27"
 });
 function decorateWarnings(editor) {
   if (!state)
@@ -169024,7 +169018,7 @@ function decorateWarnings(editor) {
   const doc = editor.document;
   editor.setDecorations(warnStyle, callerWarnings(state, relPath(doc), doc.getText()).map((w) => {
     const eol = doc.lineAt(w.start - 1).range.end;
-    return { range: new vscode.Range(w.start - 1, doc.lineAt(w.start - 1).firstNonWhitespaceCharacterIndex, w.start - 1, eol.character), hoverMessage: w.message, renderOptions: { after: { contentText: `   ${w.message}` } } };
+    return { range: new vscode.Range(w.start - 1, doc.lineAt(w.start - 1).firstNonWhitespaceCharacterIndex, w.start - 1, eol.character), hoverMessage: w.message };
   }));
 }
 var redraw = () => vscode.window.visibleTextEditors.forEach((e) => (decorate(e), decorateWarnings(e)));
@@ -169034,11 +169028,19 @@ var lenses = {
     if (!state)
       return [];
     const file = relPath(doc);
-    return functionsIn(file, doc.getText()).map((fn) => {
+    const now = Date.now();
+    const here = cursorsInFile(state, file, now);
+    const warnings = callerWarnings(state, file, doc.getText());
+    return functionsIn(file, doc.getText()).flatMap((fn) => {
       const key = `${file}#${fn.name}`;
       const lock = state.locks[key];
       const waiting = (state.queues[key] ?? []).map((w) => w.agent);
-      return new vscode.CodeLens(new vscode.Range(fn.start - 1, 0, fn.start - 1, 0), { title: lensText(lock, waiting), command: "workbench.view.extension.foreman" });
+      const cur = lock && here.find((c) => c.agent.id === lock.holder.id && c.line >= fn.start && c.line <= fn.end);
+      const at = new vscode.Range(fn.start - 1, 0, fn.start - 1, 0);
+      const lenses = [new vscode.CodeLens(at, { title: lensText(lock, waiting, now, cur ? cur.mode === "edit" ? "editing" : "reading" : undefined), command: "workbench.view.extension.foreman" })];
+      for (const w of warnings.filter((w) => w.name === fn.name))
+        lenses.push(new vscode.CodeLens(at, { title: w.message, command: "workbench.view.extension.foreman" }));
+      return lenses;
     });
   }
 };
