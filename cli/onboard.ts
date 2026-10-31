@@ -41,4 +41,5 @@ export function mergeHooks(settings: Settings, cli: string): Settings & { hooks:
   return { ...settings, hooks }
 }
 
-export const gitHookScript = (cli: string, name: "post-commit" | "pre-commit") => `#!/bin/sh\n# installed by foreman\nexec bun ${cli} git ${name}\n`
+export const GIT_HOOKS = ["post-commit", "pre-commit", "post-merge"] as const
+export const gitHookScript = (cli: string, name: (typeof GIT_HOOKS)[number]) => `#!/bin/sh\n# installed by foreman\nexec bun ${cli} git ${name}\n`

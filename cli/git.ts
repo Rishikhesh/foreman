@@ -93,3 +93,23 @@ export async function codeSources(root: string, cap = 3000): Promise<Record<stri
   }
   return out
 }
+
+/** Fetch a handed-off commit and merge it; a refused or conflicting merge is fully undone. */
+export async function autoMerge(cwd: string, sha: string): Promise<{ ok: boolean; reason?: string }> {
+  const fetched = await git(cwd, "fetch", "-q", "origin", `refs/foreman/${sha}`)
+  if (fetched.exitCode !== 0) return { ok: false, reason: "could not fetch the commit" }
+  if ((await git(cwd, "merge-base", "--is-ancestor", sha, "HEAD")).exitCode === 0) return { ok: true }
+  // --autostash: uncommitted edits in other functions are set aside and put back (locks keep them from overlapping)
+  const merged = await git(cwd, "merge", "-q", "--no-edit", "--autostash", sha)
+  if (merged.exitCode === 0) return { ok: true }
+  if (existsSync(path.join(await gitDir(cwd), "MERGE_HEAD"))) await git(cwd, "merge", "--abort")
+  const why = (merged.stderr.toString() + merged.stdout.toString()).split("\n").find(l => /conflict|overwritten|error/i.test(l))
+  return { ok: false, reason: why?.trim() || "git refused the merge" }
+}
+
+/** HEAD and the commits the last merge brought in. */
+export async function lastMerge(cwd: string): Promise<{ head: string; shas: string[] }> {
+  const head = await text(cwd, "rev-parse", "HEAD")
+  const shas = (await text(cwd, "rev-list", "ORIG_HEAD..HEAD")).split("\n").filter(Boolean)
+  return { head, shas }
+}

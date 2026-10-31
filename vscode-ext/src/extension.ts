@@ -192,8 +192,8 @@ const tree: vscode.TreeDataProvider<Node> = {
 
 function announceHandoff(h: { key: string; from?: AgentRef; commit?: { sha: string; summary: string } }) {
   const name = h.key.slice(h.key.lastIndexOf("#") + 1)
-  const msg = `${name} is yours now${h.from ? ` (from ${h.from.label})` : ""}.${h.commit ? ` ${h.commit.summary}` : " Not committed yet."}`
-  const actions = h.commit ? ["Pull commit"] : []
+  const msg = `${name} is yours now${h.from ? ` (from ${h.from.label})` : ""}. ${h.commit ? `"${h.commit.summary}" — your agent merges ${h.commit.sha.slice(0, 7)} automatically at its next step.` : "Not committed yet."}`
+  const actions = h.commit ? ["Merge now"] : []
   vscode.window.showInformationMessage(msg, ...actions).then(a => a && pullCommit(h.commit!.sha))
 }
 

@@ -62,6 +62,8 @@ export function releaseFiles(s0: RepoState, agent: AgentRef, files: string[], no
     events.push({ type: "released", agent, key, ...(commit && { sha: commit.sha }) })
     handOff(s, key, agent, now, events, commit)
   }
+  // a signature change by this agent in a committed file now ships in that commit
+  if (commit) for (const [key, c] of Object.entries(s.changes ?? {})) if (c.by.id === agent.id && files.includes(fileOf(key)) && !c.sha) c.sha = commit.sha
   return { state: s, events, value: { released } }
 }
 
@@ -152,4 +154,12 @@ export function signatureChanged(s0: RepoState, agent: AgentRef, key: LockKey, c
   }
   for (const [id, ks] of affected) notify(s, id, { kind: "signature", key, by: agent, callers: ks })
   return { state: s, events: [{ type: "signature", agent, key }], value: null }
+}
+
+/** Someone merged commits into their checkout: caller warnings for changes shipped in those commits are resolved. */
+export function pulled(s0: RepoState, head: string, shas: string[] = []): Result<null> {
+  const got = new Set([head, ...shas])
+  const s = structuredClone(s0)
+  s.changes = Object.fromEntries(Object.entries(s.changes ?? {}).filter(([, c]) => !(c.sha && got.has(c.sha))))
+  return { state: s, events: [], value: null }
 }

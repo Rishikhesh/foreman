@@ -61,7 +61,7 @@ test("init sets up the room, installs hooks, and prints an invite that join acce
   expect(calls[0]).toMatchObject({ path: "/api/join", body: { person: { name: "rishi", color: "blue" } } })
   const settings = JSON.parse(readFileSync(path.join(host, ".claude/settings.local.json"), "utf8"))
   expect(settings.hooks.PreToolUse[0].hooks[0].command).toBe(`bun ${CLI} hook pre-tool`)
-  for (const h of ["post-commit", "pre-commit"]) {
+  for (const h of ["post-commit", "pre-commit", "post-merge"]) {
     const f = path.join(host, ".git/hooks", h)
     expect(readFileSync(f, "utf8")).toContain(`${CLI} git ${h}`)
     expect(statSync(f).mode & 0o111).toBeTruthy()

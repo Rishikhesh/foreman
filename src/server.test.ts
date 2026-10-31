@@ -101,3 +101,12 @@ test("hot returns the most fought-over functions from history", async () => {
   expect(await res.json()).toEqual([{ key: V, waits: 3 }])
   s.stop()
 })
+
+test("pulled clears caller warnings for a commit", async () => {
+  const room = `test-${crypto.randomUUID().slice(0, 8)}`
+  await post("/api/claim", { repoId: room, agent: A, keys: [V] })
+  await post("/api/signature", { repoId: room, agent: A, key: V, callers: [] })
+  await post("/api/release", { repoId: room, agent: A, files: ["src/auth.ts"], commit: { sha: "s1", summary: "x", stat: "" } })
+  await post("/api/pulled", { repoId: room, head: "s1", shas: ["s1"] })
+  expect((await post("/api/status", { repoId: room })).changes).toEqual({})
+})

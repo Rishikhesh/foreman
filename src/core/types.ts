@@ -7,7 +7,7 @@ export interface Waiter { agent: AgentRef; since: number }
 export interface CommitInfo { sha: string; summary: string; stat: string }
 export type Notice =
   | { kind: "heads-up"; key: LockKey; by: AgentRef }
-  | { kind: "granted"; key: LockKey; from?: AgentRef; commit?: CommitInfo; uncommitted?: boolean }
+  | { kind: "granted"; key: LockKey; from?: AgentRef; commit?: CommitInfo; uncommitted?: boolean; merged?: { ok: boolean; reason?: string } }
   | { kind: "expired"; key: LockKey }
   | { kind: "revoked"; key: LockKey }
   | { kind: "signature"; key: LockKey; by: AgentRef; callers: LockKey[] }
@@ -23,7 +23,7 @@ export interface RepoState {
   cursors: Record<AgentId, Cursor>
   people: Record<string, Person>
   /** recent name/parameter changes, so editors can flag the callers */
-  changes: Record<LockKey, { by: AgentRef; at: number; callers: LockKey[] }>
+  changes: Record<LockKey, { by: AgentRef; at: number; callers: LockKey[]; sha?: string }>
 }
 export type EventType = "claimed" | "blocked" | "released" | "granted" | "expired" | "left" | "joined" | "revoked" | "signature"
 export interface FEvent { type: EventType; agent: AgentRef; key?: LockKey; to?: AgentRef; sha?: string }

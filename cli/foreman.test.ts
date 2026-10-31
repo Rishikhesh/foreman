@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, expect, test } from "bun:test"
-import { mkdtempSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { $ } from "bun"
@@ -145,4 +145,66 @@ test("post-tool reports nothing when only a function body changed", async () => 
   reply["/api/notices"] = []
   await out(run(["hook", "post-tool"], edit(dir), dir))
   expect(calls.find(c => c.path === "/api/signature")).toBeUndefined()
+})
+
+async function pair() {
+  const bare = mkdtempSync(path.join(tmpdir(), "foreman-pair-"))
+  await $`git init -q --bare -b main ${bare}`.quiet()
+  const one = await repo(bare)
+  await $`git -C ${one} add -A && git -C ${one} commit -qm base --no-verify && git -C ${one} push -q origin main`.quiet()
+  const two = mkdtempSync(path.join(tmpdir(), "foreman-two-"))
+  await $`git clone -q ${bare} ${two} && git -C ${two} config user.name Friend && git -C ${two} config user.email f@x && git -C ${two} config commit.gpgsign false`.quiet()
+  return { one, two }
+}
+async function handoffCommit(one: string, content: string) {
+  writeFileSync(path.join(one, "auth.ts"), content)
+  await $`git -C ${one} commit -qam "add expiry check" --no-verify`.quiet()
+  const sha = (await $`git -C ${one} rev-parse HEAD`.text()).trim()
+  await $`git -C ${one} push -q origin HEAD:refs/foreman/${sha}`.quiet()
+  return sha
+}
+
+test("post-tool auto-merges a handed-off commit into the agent's checkout and says so", async () => {
+  const { one, two } = await pair()
+  const sha = await handoffCommit(one, "export function validateToken(t: string) {\n  return t || null\n}\n")
+  reply["/api/notices"] = [{ kind: "granted", key: "auth.ts#validateToken", from: { id: "claude:a", label: "claude@rishi" }, commit: { sha, summary: "add expiry check", stat: "" } }]
+  const r = await out(run(["hook", "post-tool"], { session_id: "s2", cwd: two, tool_name: "Read", tool_input: {} }, two))
+  expect((await $`git -C ${two} merge-base --is-ancestor ${sha} HEAD`.nothrow().quiet()).exitCode).toBe(0)
+  expect(JSON.parse(r.stdout).hookSpecificOutput.additionalContext).toContain(`Foreman already merged ${sha.slice(0, 7)} into your checkout`)
+})
+
+test("a conflicting auto-merge is cancelled and the agent is told to merge by hand", async () => {
+  const { one, two } = await pair()
+  const sha = await handoffCommit(one, "export function validateToken(t: string) {\n  return t || null\n}\n")
+  writeFileSync(path.join(two, "auth.ts"), "export function validateToken(t: string) {\n  return t.trim()\n}\n")
+  await $`git -C ${two} commit -qam mine --no-verify`.quiet()
+  reply["/api/notices"] = [{ kind: "granted", key: "auth.ts#validateToken", from: { id: "claude:a", label: "claude@rishi" }, commit: { sha, summary: "add expiry check", stat: "" } }]
+  const r = await out(run(["hook", "post-tool"], { session_id: "s2", cwd: two, tool_name: "Read", tool_input: {} }, two))
+  expect(existsSync(path.join(two, ".git/MERGE_HEAD"))).toBe(false)
+  expect((await $`git -C ${two} status --porcelain`.text()).trim()).toBe("")
+  expect(JSON.parse(r.stdout).hookSpecificOutput.additionalContext).toContain("automatic merge failed")
+})
+
+test("post-merge reports the commits that just came in", async () => {
+  const { one, two } = await pair()
+  const sha = await handoffCommit(one, "export function validateToken(t: string) {\n  return t || null\n}\n")
+  await $`git -C ${two} fetch -q origin refs/foreman/${sha} && git -C ${two} merge -q --no-edit ${sha}`.quiet()
+  calls.length = 0
+  await out(run(["git", "post-merge"], "", two))
+  expect(calls.find(c => c.path === "/api/pulled")?.body).toMatchObject({ repoId: "r1", head: sha, shas: [sha] })
+})
+
+test("auto-merge keeps the agent's uncommitted work in other functions of the same file", async () => {
+  const { one, two } = await pair()
+  const base = "export function validateToken(t: string) {\n  return t\n}\n\nexport function refresh(id: string) {\n  return id\n}\n"
+  writeFileSync(path.join(one, "auth.ts"), base)
+  await $`git -C ${one} commit -qam two-fns --no-verify && git -C ${one} push -q origin main && git -C ${two} pull -q --no-rebase origin main`.quiet()
+  const sha = await handoffCommit(one, base.replace("  return t\n", "  return t || null\n"))
+  writeFileSync(path.join(two, "auth.ts"), base.replace("  return id\n", "  return id.trim()\n"))
+  reply["/api/notices"] = [{ kind: "granted", key: "auth.ts#validateToken", from: { id: "claude:a", label: "claude@rishi" }, commit: { sha, summary: "x", stat: "" } }]
+  const r = await out(run(["hook", "post-tool"], { session_id: "s2", cwd: two, tool_name: "Read", tool_input: {} }, two))
+  const now = await Bun.file(path.join(two, "auth.ts")).text()
+  expect(now).toContain("return t || null")
+  expect(now).toContain("return id.trim()")
+  expect(JSON.parse(r.stdout).hookSpecificOutput.additionalContext).toContain("Foreman already merged")
 })

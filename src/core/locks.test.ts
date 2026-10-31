@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { claim, emptyState, expire, isWaiting, joinRoom, releaseAll, releaseFiles, revoke, signatureChanged, takeNotices, touch, TTL_MS } from "./locks.js"
+import { claim, emptyState, expire, isWaiting, joinRoom, pulled, releaseAll, releaseFiles, revoke, signatureChanged, takeNotices, touch, TTL_MS } from "./locks.js"
 import type { AgentRef } from "./types.js"
 
 const A: AgentRef = { id: "claude:a", label: "claude@rishi" }
@@ -183,4 +183,23 @@ test("old signature changes are dropped after 10 minutes", () => {
   let s = signatureChanged(emptyState(), A, V, [], 0).state
   s = signatureChanged(s, A, R, [], 10 * 60_000 + 1).state
   expect(Object.keys(s.changes)).toEqual([R])
+})
+
+test("a committed change carries its sha, and pulling that sha clears its caller warnings", () => {
+  let s = claim(emptyState(), A, [V], 1).state
+  s = signatureChanged(s, A, V, ["src/auth.ts#getUser"], 2).state
+  expect(s.changes[V].sha).toBeUndefined()
+  s = releaseFiles(s, A, ["src/auth.ts"], 3, commit).state
+  expect(s.changes[V].sha).toBe("abc123")
+  expect(pulled(s, "zzz").state.changes[V]).toBeDefined()
+  const r = pulled(s, "abc123")
+  expect(r.state.changes).toEqual({})
+  expect(r.events).toEqual([])
+})
+
+test("pulling a commit that contains the change (any sha listed) clears it too", () => {
+  let s = signatureChanged(emptyState(), A, V, [], 1).state
+  s = claim(s, A, [V], 1).state
+  s = releaseFiles(s, A, ["src/auth.ts"], 2, commit).state
+  expect(pulled(s, "other", ["abc123"]).state.changes).toEqual({})
 })

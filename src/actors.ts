@@ -40,6 +40,9 @@ export class RepoActor extends Actor<Record<string, never>, never, Out> {
   async signatureChanged(agent: AgentRef, key: LockKey, callers: LockKey[]) {
     return this.#apply(core.signatureChanged(this.state, agent, key, callers, Date.now()))
   }
+  async pulled(head: string, shas: string[]) {
+    return this.#apply(core.pulled(this.state, head, shas))
+  }
   async takeNotices(agentId: AgentId) {
     return this.#apply(core.takeNotices(this.state, agentId, Date.now()))
   }

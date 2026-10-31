@@ -4,7 +4,7 @@ import path from "node:path"
 import type { AgentRef, Blocked, Notice, RepoState } from "../src/core/types.js"
 import { callersOf, changedLines, keysForLines, signatureChanges } from "../src/core/symbols.js"
 import * as g from "./git.js"
-import { COLORS, decodeInvite, encodeInvite, gitHookScript, mergeHooks, removeHooks } from "./onboard.js"
+import { COLORS, decodeInvite, encodeInvite, GIT_HOOKS, gitHookScript, mergeHooks, removeHooks } from "./onboard.js"
 import { agentFor, contextOutput, denyOutput, describe, editPlan, renderDeny, renderNotice, stopDecision } from "./hook.js"
 
 const CLI_TIMEOUT_MS = 2000
@@ -52,7 +52,15 @@ async function hookAgent(cwd: string, sessionId: string): Promise<AgentRef> {
 
 async function notices(cwd: string, sessionId: string): Promise<Notice[]> {
   const { url, repoId } = await ctx(cwd)
-  return call<Notice[]>(url, "/api/notices", { repoId, agentId: `claude:${sessionId}` })
+  return withMerges(cwd, await call<Notice[]>(url, "/api/notices", { repoId, agentId: `claude:${sessionId}` }))
+}
+
+/** For each function handed over with a commit, merge that commit into this checkout before the agent hears about it. */
+async function withMerges(cwd: string, ns: Notice[]): Promise<Notice[]> {
+  const root = (await g.worktreeRoot(cwd)) || cwd
+  const out: Notice[] = []
+  for (const n of ns) out.push(n.kind === "granted" && n.commit ? { ...n, merged: await g.autoMerge(root, n.commit.sha) } : n)
+  return out
 }
 
 const commands: Record<string, (args: string[], stdin: () => any) => Promise<number | void>> = {
@@ -98,7 +106,7 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     const agentId = `claude:${input.session_id}`
     for (const t0 = Date.now(); Date.now() - t0 < STOP_MAX_MS; await Bun.sleep(STOP_POLL_MS)) {
       const { waiting } = await call<{ waiting: boolean }>(url, "/api/waiting", { repoId, agentId })
-      const d = stopDecision(waiting, await call<Notice[]>(url, "/api/notices", { repoId, agentId }))
+      const d = stopDecision(waiting, await withMerges(input.cwd, await call<Notice[]>(url, "/api/notices", { repoId, agentId })))
       if (d.output) {
         print(d.output)
         return
@@ -125,6 +133,13 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     }
     const { url, repoId } = await ctx(cwd)
     await call(url, "/api/release", { repoId, agent, files, commit: info })
+  },
+
+  async "git post-merge"() {
+    const cwd = process.cwd()
+    const { head, shas } = await g.lastMerge(cwd)
+    const { url, repoId } = await ctx(cwd)
+    await call(url, "/api/pulled", { repoId, head, shas })
   },
 
   async "git pre-commit"() {
@@ -176,7 +191,7 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     const settingsFile = path.join(root, ".claude", "settings.local.json")
     if (existsSync(settingsFile)) writeFileSync(settingsFile, JSON.stringify(removeHooks(JSON.parse(readFileSync(settingsFile, "utf8"))), null, 2))
     const hooksDir = await g.hooksDir(root)
-    for (const h of ["post-commit", "pre-commit"]) {
+    for (const h of GIT_HOOKS) {
       const f = path.join(hooksDir, h)
       if (existsSync(f) && readFileSync(f, "utf8").includes("installed by foreman")) rmSync(f)
     }
@@ -243,7 +258,7 @@ async function enter(root: string, url: string, repoId: string, args: string[]) 
   writeFileSync(settingsFile, JSON.stringify(mergeHooks(settings, cli), null, 2))
   const hooksDir = await g.hooksDir(root)
   mkdirSync(hooksDir, { recursive: true })
-  for (const h of ["post-commit", "pre-commit"] as const) {
+  for (const h of GIT_HOOKS) {
     const f = path.join(hooksDir, h)
     if (existsSync(f) && !readFileSync(f, "utf8").includes("installed by foreman")) {
       console.error(`foreman: ${f} already exists and isn't ours; add \`bun ${cli} git ${h}\` to it yourself.`)

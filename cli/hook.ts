@@ -75,8 +75,10 @@ export function renderNotice(n: Notice): string {
     case "heads-up":
       return `Heads-up: ${n.by.label} locked ${describe(n.key)}, a file you have opened. Avoid editing it.`
     case "granted":
+      if (n.commit && n.merged?.ok)
+        return `${describe(n.key)} is yours now. ${n.from?.label ?? "Its holder"} committed ${n.commit.sha.slice(0, 7)}: ${n.commit.summary}. Foreman already merged ${n.commit.sha.slice(0, 7)} into your checkout, so you are building on their latest version; read their change before editing.`
       return n.commit
-        ? `${describe(n.key)} is yours now. ${n.from?.label ?? "Its holder"} committed ${n.commit.sha}: ${n.commit.summary}. Before editing, run \`git fetch origin refs/foreman/${n.commit.sha} && git merge ${n.commit.sha}\`.`
+        ? `${describe(n.key)} is yours now. ${n.from?.label ?? "Its holder"} committed ${n.commit.sha}: ${n.commit.summary}. Before editing, run \`git fetch origin refs/foreman/${n.commit.sha} && git merge ${n.commit.sha}\`.${n.merged ? ` (Foreman's automatic merge failed: ${n.merged.reason}.)` : ""}`
         : `${describe(n.key)} is yours now. ${n.from?.label ?? "Its holder"} left without committing; its changes are not in any commit.`
     case "expired":
       return `Your lock on ${describe(n.key)} expired. It will be re-taken on your next edit if free.`

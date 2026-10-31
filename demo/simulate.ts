@@ -1,4 +1,5 @@
-// Drives two fake agents through the real Foreman hooks and git, so the VS Code windows show live activity.
+// Full Foreman flow with two fake agents driving the real hooks and git, so both VS Code windows show it live:
+// lock → edit → blocked → caller warning → commit → handoff with automatic merge → finish → every colour clears.
 // Usage: bun demo/simulate.ts [demoDir]   (default ~/personal/foreman-demo)
 import { readFileSync, writeFileSync } from "node:fs"
 import os from "node:os"
@@ -7,14 +8,16 @@ import { $ } from "bun"
 
 const demo = process.argv[2] ?? path.join(os.homedir(), "personal/foreman-demo")
 const CLI = path.join(import.meta.dir, "..", "cli", "foreman.ts")
-const rishi = { dir: path.join(demo, "rishi"), session: `sim-rishi-${Date.now()}` }
-const friend = { dir: path.join(demo, "friend"), session: `sim-friend-${Date.now()}` }
-const file = (who: typeof rishi) => path.join(who.dir, "src/auth.ts")
+const PAUSE_MS = Number(process.env.DEMO_PAUSE_MS ?? 3500)
+type Who = { name: string; dir: string; session: string }
+const blue: Who = { name: "blue (rishi)", dir: path.join(demo, "rishi"), session: `sim-rishi-${Date.now()}` }
+const orange: Who = { name: "orange (friend)", dir: path.join(demo, "friend"), session: `sim-friend-${Date.now()}` }
+const authFile = (w: Who) => path.join(w.dir, "src/auth.ts")
 
-async function hook(who: typeof rishi, sub: string, tool: string, input: Record<string, unknown>) {
+async function hook(w: Who, sub: string, tool: string, input: Record<string, unknown>) {
   const p = Bun.spawn(["bun", CLI, "hook", sub], {
-    cwd: who.dir,
-    stdin: new Response(JSON.stringify({ session_id: who.session, cwd: who.dir, tool_name: tool, tool_input: input })),
+    cwd: w.dir,
+    stdin: new Response(JSON.stringify({ session_id: w.session, cwd: w.dir, tool_name: tool, tool_input: input })),
     stdout: "pipe",
   })
   const out = await new Response(p.stdout).text()
@@ -22,42 +25,66 @@ async function hook(who: typeof rishi, sub: string, tool: string, input: Record<
 }
 const step = async (msg: string) => {
   console.log(`\n▶ ${msg}`)
-  await Bun.sleep(3000)
+  await Bun.sleep(PAUSE_MS)
+}
+const told = (w: Who, r: any) => {
+  const text = r?.hookSpecificOutput?.additionalContext ?? r?.hookSpecificOutput?.permissionDecisionReason
+  if (text) console.log(`  ${w.name} was told: ${text}`)
 }
 
-// Fresh start every run: empty the room and put both worktrees back on the first demo commit.
-const cfg = JSON.parse(readFileSync(path.join(rishi.dir, ".git/foreman.json"), "utf8"))
-const api = (route: string, body: object) => fetch(`${cfg.url}${route}`, { method: "POST", body: JSON.stringify({ repoId: cfg.repoId, ...body }) }).then(r => r.json())
-const room = await api("/api/status", {})
-for (const agent of Object.values(room.members ?? {})) await api("/api/release-all", { agent })
-const base = (await $`git -C ${rishi.dir} rev-list --max-parents=0 HEAD`.text()).trim()
-for (const who of [rishi, friend]) await $`git -C ${who.dir} reset -q --hard ${base}`.quiet()
-console.log(`room cleared, both worktrees reset to ${base.slice(0, 7)}`)
+/** What Claude does for one Edit: ask Foreman (pre-tool), change the file if allowed, then post-tool. */
+async function edit(w: Who, oldText: string, newText: string) {
+  const input = { file_path: authFile(w), old_string: oldText }
+  const pre = await hook(w, "pre-tool", "Edit", input)
+  if (pre?.hookSpecificOutput?.permissionDecision === "deny") return told(w, pre), false
+  const src = readFileSync(authFile(w), "utf8")
+  if (!src.includes(oldText)) throw new Error(`${w.name}: text not found: ${oldText}`)
+  writeFileSync(authFile(w), src.replace(oldText, newText))
+  told(w, await hook(w, "post-tool", "Edit", input))
+  return true
+}
+const commit = (w: Who, msg: string) => $`git -C ${w.dir} commit -qam ${msg}`.quiet().nothrow()
 
-await step("blue (rishi) reads auth.ts")
-await hook(rishi, "pre-tool", "Read", { file_path: file(rishi), offset: 3 })
-await step("orange (friend) reads auth.ts")
-await hook(friend, "pre-tool", "Read", { file_path: file(friend), offset: 8 })
-await step("blue starts editing validateToken → locked blue")
-await hook(rishi, "pre-tool", "Edit", { file_path: file(rishi), old_string: "  return claims" })
-await step("orange edits refreshSession in the same file → allowed, locked orange")
-await hook(friend, "pre-tool", "Edit", { file_path: file(friend), old_string: "  return { ...session, refreshedAt: Date.now() }" })
-console.log("  orange mailbox:", (await hook(friend, "post-tool", "Edit", {}))?.hookSpecificOutput?.additionalContext ?? "(empty)")
-await step("orange tries validateToken → refused, queued behind blue")
-const deny = await hook(friend, "pre-tool", "Edit", { file_path: file(friend), old_string: "  return claims" })
-console.log("  orange was told:", deny?.hookSpecificOutput?.permissionDecisionReason)
-await step("orange works on getUser, which calls validateToken")
-await hook(friend, "pre-tool", "Edit", { file_path: file(friend), old_string: "  return db.user(claims.sub)" })
-await step("blue changes validateToken's parameters → orange is warned, getUser turns amber")
-const sigEdit = { file_path: file(rishi), old_string: "export function validateToken(token: string) {" }
-await hook(rishi, "pre-tool", "Edit", sigEdit)
-writeFileSync(file(rishi), readFileSync(file(rishi), "utf8").replace("validateToken(token: string) {", "validateToken(token: string, now = Date.now()) {"))
-await hook(rishi, "post-tool", "Edit", sigEdit)
-console.log("  orange was told:", (await hook(friend, "post-tool", "Read", {}))?.hookSpecificOutput?.additionalContext ?? "(empty)")
-await step("blue finishes: adds an expiry check and commits")
-const src = readFileSync(file(rishi), "utf8").replace("  return claims\n", "  if (claims.exp && claims.exp * 1000 < now) return null\n  return claims\n")
-writeFileSync(file(rishi), src)
-await $`git -C ${rishi.dir} commit -qam "validateToken: reject expired tokens"`.quiet().nothrow()
-await step("orange's next step picks up the handoff")
-console.log("  orange was told:", (await hook(friend, "post-tool", "Read", {}))?.hookSpecificOutput?.additionalContext ?? "(empty)")
-console.log("\nDone. Watch the orange window for the 'validateToken is yours' pop-up with Pull commit.")
+// ---------- fresh start: empty room, both worktrees on the first demo commit ----------
+const cfg = JSON.parse(readFileSync(path.join(blue.dir, ".git/foreman.json"), "utf8"))
+const api = (route: string, body: object) => fetch(`${cfg.url}${route}`, { method: "POST", body: JSON.stringify({ repoId: cfg.repoId, ...body }) }).then(r => r.json())
+for (const agent of Object.values((await api("/api/status", {})).members ?? {})) await api("/api/release-all", { agent })
+const base = (await $`git -C ${blue.dir} rev-list --max-parents=0 HEAD`.text()).trim()
+for (const w of [blue, orange]) await $`git -C ${w.dir} reset -q --hard ${base}`.quiet()
+console.log(`Room cleared, both worktrees reset to ${base.slice(0, 7)}. Open src/auth.ts in both windows.`)
+
+await step("1. Both agents open auth.ts (cursors appear)")
+await hook(blue, "pre-tool", "Read", { file_path: authFile(blue), offset: 3 })
+await hook(orange, "pre-tool", "Read", { file_path: authFile(orange), offset: 9 })
+
+await step("2. Blue edits validateToken → it locks blue, and the edit appears in the left window")
+await edit(blue, "  return claims\n", "  if (claims.exp && claims.exp * 1000 < Date.now()) return null\n  return claims\n")
+
+await step("3. Orange edits refreshSession in the same file → allowed (different function), locks orange")
+await edit(orange, "  return { ...session, refreshedAt: Date.now() }", "  return { ...session, refreshedAt: Date.now(), ttlMs: 15 * 60_000 }")
+
+await step("4. Orange tries validateToken → refused and queued behind blue (label shows ⏳)")
+await edit(orange, "  const claims = JSON.parse(", "  const claims: { exp?: number; sub: string } = JSON.parse(")
+
+await step("5. Orange works on getUser instead (it calls validateToken)")
+await edit(orange, "  return db.user(claims.sub)", "  if (!claims) return null\n  return db.user(claims.sub)")
+
+await step("6. Blue changes validateToken's parameters → orange is warned, getUser turns amber")
+await edit(blue, "export function validateToken(token: string) {", "export function validateToken(token: string, now = Date.now()) {")
+await edit(blue, "claims.exp * 1000 < Date.now()", "claims.exp * 1000 < now")
+
+await step("7. Blue commits → blue's colour clears; validateToken is handed to orange with the commit")
+await commit(blue, "validateToken: reject expired tokens, injectable clock")
+
+await step("8. Orange's next step: Foreman merges blue's commit into orange's checkout by itself; the amber clears")
+told(orange, await hook(orange, "post-tool", "Read", {}))
+
+await step("9. Orange finishes validateToken on top of blue's version")
+await edit(orange, "  const claims = JSON.parse(", "  const claims: { exp?: number; sub: string } = JSON.parse(")
+
+await step("10. Orange commits → every lock is released, all colours go away")
+await commit(orange, "auth: typed claims, session ttl, null-safe getUser")
+
+const end = await api("/api/status", {})
+console.log(`\nDone. Locks left: ${Object.keys(end.locks).length}. Caller warnings left: ${Object.keys(end.changes ?? {}).length}.`)
+console.log("Both windows should now show plain code: no stripes, no labels, no amber.")

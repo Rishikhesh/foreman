@@ -20,6 +20,7 @@ const routes: Record<string, (b: Body) => Promise<{ value: unknown; events?: FEv
   "/api/join": b => repo(b).join(b.person),
   "/api/revoke": b => repo(b).revoke(b.key),
   "/api/signature": b => repo(b).signatureChanged(b.agent, b.key, b.callers ?? []),
+  "/api/pulled": b => repo(b).pulled(b.head, b.shas ?? []),
   "/api/notices": b => repo(b).takeNotices(b.agentId),
   "/api/waiting": async b => ({ value: { waiting: await repo(b).isWaiting(b.agentId) } }),
   "/api/status": async b => ({ value: await repo(b).status() }),
