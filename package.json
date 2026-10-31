@@ -9,7 +9,7 @@
     "dev": "durable-actors dev --port 7111",
     "generate": "durable-actors generate",
     "server": "bun server.ts",
-    "test": "bun test src cli"
+    "test": "bun test ./src ./cli"
   },
   "dependencies": {
     "@agent-relay/sdk": "15.0.1",
