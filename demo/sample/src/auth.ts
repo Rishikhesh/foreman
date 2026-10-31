@@ -18,7 +18,8 @@ export async function refreshSession(id: string) {
 export function getUser(token: string) {
   const claims = validateToken(token, "foreman")
   if (!claims) return null
-  return db.user(claims.sub)
+  const user = db.user(claims.sub)
+  return { ...user, checkedAt: Date.now() }
 }
 
 export async function revokeSession(id: string) {
