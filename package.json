@@ -9,7 +9,8 @@
     "dev": "durable-actors dev --port 7111",
     "generate": "durable-actors generate",
     "server": "bun server.ts",
-    "test": "bun test ./src ./cli"
+    "test": "bun test ./src ./cli ./vscode-ext",
+    "build:ext": "bun build vscode-ext/src/extension.ts --target node --format cjs --external vscode --outfile vscode-ext/dist/extension.js"
   },
   "dependencies": {
     "@agent-relay/sdk": "15.0.1",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
-    "@types/node": "^26.6.6"
+    "@types/node": "^26.6.6",
+    "@types/vscode": "1.90"
   }
 }

@@ -1,0 +1,42 @@
+{
+  "name": "foreman",
+  "displayName": "Foreman",
+  "description": "Google Docs for coding agents: live function locks, agent cursors and handoffs in your editor.",
+  "publisher": "foreman",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.90.0" },
+  "main": "./dist/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "foreman.createRoom", "title": "Foreman: Create room" },
+      { "command": "foreman.joinRoom", "title": "Foreman: Join room" },
+      { "command": "foreman.leaveRoom", "title": "Foreman: Leave room" },
+      { "command": "foreman.copyInvite", "title": "Foreman: Copy invite" },
+      { "command": "foreman.revoke", "title": "Revoke lock" },
+      { "command": "foreman.pullCommit", "title": "Foreman: Pull handed-off commit" },
+      { "command": "foreman.reload", "title": "Foreman: Update (git pull) and reload" }
+    ],
+    "viewsContainers": {
+      "activitybar": [{ "id": "foreman", "title": "Foreman", "icon": "$(organization)" }]
+    },
+    "views": {
+      "foreman": [{ "id": "foreman.room", "name": "Room" }]
+    },
+    "viewsWelcome": [
+      {
+        "view": "foreman.room",
+        "contents": "Work on this repo together with your teammates' agents.\n[Create room](command:foreman.createRoom)\n[Join room](command:foreman.joinRoom)"
+      }
+    ],
+    "menus": {
+      "view/item/context": [{ "command": "foreman.revoke", "when": "view == foreman.room && viewItem == lock" }]
+    },
+    "configuration": {
+      "title": "Foreman",
+      "properties": {
+        "foreman.serverUrl": { "type": "string", "default": "", "description": "Overrides the server URL saved by Create/Join room." }
+      }
+    }
+  }
+}

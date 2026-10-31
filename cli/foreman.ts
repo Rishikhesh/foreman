@@ -96,7 +96,10 @@ const commands: Record<string, (args: string[], stdin: () => any) => Promise<num
     for (const t0 = Date.now(); Date.now() - t0 < STOP_MAX_MS; await Bun.sleep(STOP_POLL_MS)) {
       const { waiting } = await call<{ waiting: boolean }>(url, "/api/waiting", { repoId, agentId })
       const d = stopDecision(waiting, await call<Notice[]>(url, "/api/notices", { repoId, agentId }))
-      if (d.output) return print(d.output)
+      if (d.output) {
+        print(d.output)
+        return
+      }
       if (!d.keepPolling) return
     }
   },
