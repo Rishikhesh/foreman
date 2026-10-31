@@ -3,7 +3,7 @@ import type { AgentId, AgentRef, Blocked, CommitInfo, FEvent, LockKey, Notice, P
 /** A lock is freed only after its holder has been completely idle (no hook activity at all) this long. */
 export const TTL_MS = 15 * 60_000
 
-export const emptyState = (): RepoState => ({ locks: {}, queues: {}, outbox: {}, seen: {}, members: {}, cursors: {}, people: {}, changes: {} })
+export const emptyState = (): RepoState => ({ locks: {}, queues: {}, outbox: {}, seen: {}, members: {}, cursors: {}, people: {}, changes: {}, access: {} })
 
 export const fileOf = (key: LockKey) => key.slice(0, key.lastIndexOf("#"))
 

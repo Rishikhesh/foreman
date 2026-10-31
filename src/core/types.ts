@@ -12,6 +12,7 @@ export type Notice =
   | { kind: "revoked"; key: LockKey }
   | { kind: "signature"; key: LockKey; by: AgentRef; callers: LockKey[] }
 export interface Person { name: string; color: string }
+export interface Member { login: string; githubId: number; color: string; role: "host" | "member"; status: "pending" | "allowed"; keyHash: string }
 export interface Cursor { file: string; line?: number; mode: "read" | "edit"; at: number }
 export interface RepoState {
   locks: Record<LockKey, Lock>
@@ -24,8 +25,10 @@ export interface RepoState {
   people: Record<string, Person>
   /** recent name/parameter changes, so editors can flag the callers */
   changes: Record<LockKey, { by: AgentRef; at: number; callers: LockKey[]; sha?: string }>
+  /** who may use this room, by GitHub login; keys are stored only as SHA-256 fingerprints */
+  access: Record<string, Member>
 }
-export type EventType = "claimed" | "blocked" | "released" | "granted" | "expired" | "left" | "joined" | "revoked" | "signature"
+export type EventType = "claimed" | "blocked" | "released" | "granted" | "expired" | "left" | "joined" | "revoked" | "signature" | "join-requested" | "removed"
 export interface FEvent { type: EventType; agent: AgentRef; key?: LockKey; to?: AgentRef; sha?: string }
 export interface Result<T> { state: RepoState; events: FEvent[]; value: T }
 export interface Blocked { key: LockKey; holder: AgentRef; task?: string; position: number }

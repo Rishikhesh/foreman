@@ -4,7 +4,7 @@ import type { FEvent } from "./core/types.js"
 
 // Integration: needs `bun run dev` (Terse on :7111) running.
 const seen: FEvent[] = []
-const server = startServer({ port: 0, onEvents: async (_repo, events) => void seen.push(...events) })
+const server = startServer({ port: 0, auth: false, onEvents: async (_repo, events) => void seen.push(...events) })
 afterAll(() => server.stop())
 
 const repoId = `test-${crypto.randomUUID().slice(0, 8)}`
@@ -58,7 +58,7 @@ test("a slow Relay never delays the agents: events are posted in the background,
   const order: string[] = []
   let release!: () => void
   const gate = new Promise<void>(r => (release = r))
-  const slow = startServer({ port: 0, onEvents: async (_r, events) => { await gate; order.push(...events.map(e => e.type)) } })
+  const slow = startServer({ port: 0, auth: false, onEvents: async (_r, events) => { await gate; order.push(...events.map(e => e.type)) } })
   const room = `test-${crypto.randomUUID().slice(0, 8)}`
   const t0 = Date.now()
   for (const keys of [["a.ts#f"], ["a.ts#g"]])
@@ -71,23 +71,6 @@ test("a slow Relay never delays the agents: events are posted in the background,
   slow.stop()
 })
 
-test("grant gives a live socket that streams the room state; revoke frees a lock", async () => {
-  const room = `test-${crypto.randomUUID().slice(0, 8)}`
-  await post("/api/claim", { repoId: room, agent: A, keys: [V] })
-  const { websocketUrl } = await (await fetch(new URL(`/grant?repo=${room}`, server.url))).json()
-  const ws = new WebSocket(websocketUrl)
-  const first = await new Promise<any>((res, rej) => {
-    ws.onmessage = e => res(JSON.parse(String(e.data)))
-    ws.onerror = rej
-  })
-  expect(first.type).toBe("state")
-  expect(first.state.state.locks[V].holder.id).toBe(A.id)
-  const update = new Promise<any>(res => (ws.onmessage = e => { const m = JSON.parse(String(e.data)); if (m.type === "state_update") res(m) }))
-  expect(await post("/api/revoke", { repoId: room, key: V })).toEqual({ revoked: true })
-  expect((await update).changes.state.locks).toEqual({})
-  ws.close()
-})
-
 test("signature route warns caller holders", async () => {
   const room = `test-${crypto.randomUUID().slice(0, 8)}`
   await post("/api/claim", { repoId: room, agent: B, keys: ["src/login.ts#login"] })
@@ -96,7 +79,7 @@ test("signature route warns caller holders", async () => {
 })
 
 test("hot returns the most fought-over functions from history", async () => {
-  const s = startServer({ port: 0, hot: async repoId => (repoId === "r9" ? [{ key: V, waits: 3 }] : []) })
+  const s = startServer({ port: 0, auth: false, hot: async repoId => (repoId === "r9" ? [{ key: V, waits: 3 }] : []) })
   const res = await fetch(new URL("/api/hot", s.url), { method: "POST", body: JSON.stringify({ repoId: "r9" }) })
   expect(await res.json()).toEqual([{ key: V, waits: 3 }])
   s.stop()

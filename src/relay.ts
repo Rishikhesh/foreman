@@ -21,6 +21,8 @@ export function formatEvent(e: FEvent): string {
     case "expired": return `${who}'s lock on ${what} expired after being idle`
     case "left": return `${who} left`
     case "signature": return `${who} changed the name or parameters of ${what}; callers were warned`
+    case "join-requested": return `${who} asked to join (${e.agent.color}); the host can allow them in VS Code`
+    case "removed": return `${who} was removed from the room`
     case "revoked": return `${who}'s lock on ${what} was revoked`
   }
 }
