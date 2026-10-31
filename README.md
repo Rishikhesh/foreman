@@ -13,35 +13,50 @@ Built on [Terse Durable Actors](https://github.com/TerseAI/durable-actors) (one 
 
 [Bun](https://bun.sh) 1.4+, git, VS Code, and Claude Code.
 
-## Host: run the server (one laptop)
+## Host (the laptop that runs the server)
 
 ```bash
 git clone git@github.com:Rishikhesh/hauntedHacks.git && cd hauntedHacks && bun install
-bun run dev                 # Terse, keep it running
-bun src/server.ts           # Foreman server on :7300, in a second terminal
-cloudflared tunnel --url http://localhost:7300   # public https address, in a third terminal
+bun cli/foreman.ts install-extension      # then quit and reopen VS Code
 ```
 
-Then, in your clone:
+In VS Code, open the repo, then go to the Foreman sidebar and click **Start a room**.
 
-```bash
-bun cli/foreman.ts init --url http://127.0.0.1:7300 --name <you> --color blue
-bun cli/foreman.ts invite --url https://<your-tunnel>.trycloudflare.com    # send the printed line to your teammate
-```
+1. Sign in with GitHub.
+2. Pick a colour.
+3. You get a code like `K7QM-2XPA`.
+
+Start a room also starts Terse, the server and your Cloudflare tunnel if they aren't running. The address is `foreman.rishikhesh.com`, set by `foreman.serverUrl`.
+
+To invite someone, click the room line in the sidebar. It copies a ready-to-paste message.
+
+When your teammate asks to join, you get an **Allow** button.
 
 Add your teammate as a collaborator on the GitHub repo. Handoffs push commits to hidden `refs/foreman/*` refs, so both of you need push access.
 
-## Teammate: join
+## Teammate
 
 ```bash
-git clone git@github.com:Rishikhesh/hauntedHacks.git && cd hauntedHacks && bun install
-ln -sfn "$PWD/vscode-ext" ~/.vscode/extensions/foreman.foreman-dev   # then restart VS Code once
-bun cli/foreman.ts join fm_…  --name <you> --color orange
+git clone https://github.com/Rishikhesh/hauntedHacks.git && cd hauntedHacks && bun install
+bun cli/foreman.ts install-extension      # then quit and reopen VS Code
 ```
 
-Or, in VS Code: Command Palette → **Foreman: Join room**, then paste the invite.
+Open the folder in VS Code and click **Trust**. Then go to the Foreman sidebar and click **Join a room**.
 
-Then both of you open the repo in VS Code, trust the folder, and start Claude Code in it. Try `demo/sample/src/auth.ts`.
+1. Sign in with GitHub.
+2. Enter the code.
+3. Pick a colour.
+4. Wait for the host to allow you.
+5. Start Claude Code in that folder.
+
+## Security
+
+- **Identity:** GitHub verifies who you are. The server checks your token with GitHub once and never stores it.
+- **Room key:** each person's laptop makes its own room key. The server keeps only its SHA-256 fingerprint.
+- **Every request is checked:** each request and the live view must carry a valid key for that room. Without one, the server answers 401.
+- **The host decides:** nobody gets in without the host clicking Allow, and the host can remove people.
+- **Room codes:** a code opens one room and expires after 24 hours.
+- **Demo identities:** `--dev <name>` is accepted only from the server's own laptop, never through the tunnel.
 
 ## Try it alone first
 
@@ -53,7 +68,7 @@ bun demo/simulate.ts    # two fake agents run the full flow; every colour clears
 
 ## Commands
 
-`foreman init | join | invite | leave | status`
+`foreman init | join <code> | allow <login> | invite | leave | status | install-extension`
 
 Hooks run on their own once you're in a room.
 
