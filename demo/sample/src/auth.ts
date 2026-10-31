@@ -5,6 +5,7 @@ export function validateToken(token: string, expectedIssuer: string) {
   if (claims.iss !== expectedIssuer) return null
   if (claims.exp * 1000 < Date.now()) return null
   if (!claims.sub) return null
+  if (claims.role !== undefined && claims.role !== "user" && claims.role !== "admin") return null
   return claims
 }
 
@@ -15,6 +16,19 @@ export async function refreshSession(id: string) {
 }
 
 export function getUser(token: string) {
-  const claims = validateToken(token)
+  const claims = validateToken(token, "foreman")
+  if (!claims) return null
   return db.user(claims.sub)
+}
+
+export async function revokeSession(id: string) {
+  return { ...(await db.session(id)), revokedAt: Date.now() }
+}
+
+export function sessionExpiresAt(createdAt: number) {
+  return createdAt + 15 * 60_000
+}
+
+export function isAdmin(token: string) {
+  return validateToken(token, "foreman")?.role === "admin"
 }
