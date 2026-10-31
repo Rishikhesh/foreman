@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[
+  {"id":"color-rishi","type":"color","label":"Host colour","default":"#378ADD"},
+  {"id":"color-friend","type":"color","label":"Friend colour","default":"#D85A30"},
+  {"id":"color-warn","type":"color","label":"Warning colour","default":"#EF9F27"}
+]'>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #121212; }
+      #root { position: relative; width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-38rt" id="root" data-composition-id="main" data-start="0" data-duration="58" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-oyfd" id="hook" data-composition-id="hook" data-composition-src="compositions/hook.html" data-start="0" data-duration="9" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:1"></div>
+      <div data-hf-id="hf-hy3n" id="reveal" data-composition-id="reveal" data-composition-src="compositions/reveal.html" data-start="9" data-duration="3" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:2"></div>
+      <div data-hf-id="hf-dan3" id="join" data-composition-id="join" data-composition-src="compositions/join.html" data-start="12" data-duration="11.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:3"></div>
+      <div data-hf-id="hf-c1wl" id="editor" data-composition-id="editor" data-composition-src="compositions/editor.html" data-start="23.5" data-duration="26" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:4"></div>
+      <div data-hf-id="hf-vnjz" id="claim" data-composition-id="claim" data-composition-src="compositions/claim.html" data-start="49.5" data-duration="4" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:5"></div>
+      <div data-hf-id="hf-q5b5" id="endcard" data-composition-id="endcard" data-composition-src="compositions/endcard.html" data-start="53.5" data-duration="4.5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:6"></div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

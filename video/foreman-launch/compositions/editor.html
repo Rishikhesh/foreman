@@ -1,0 +1,159 @@
+<template>
+  <style>
+  #root { position: absolute; inset: 0; overflow: hidden; font-family: Inter, sans-serif; }
+  .win { position: absolute; background: #1E1E1E; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #323233; display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bar-title { position: absolute; left: 0; right: 0; text-align: center; color: #CCCCCC; font: 500 18px Inter, sans-serif; }
+  .act { position: absolute; left: 0; top: 44px; bottom: 0; width: 64px; background: #333333; }
+  .act svg { position: absolute; left: 16px; width: 32px; height: 32px; }
+  .tabs { position: absolute; top: 44px; right: 0; height: 46px; background: #252526; }
+  .tab { position: absolute; top: 0; height: 46px; padding: 0 24px; background: #1E1E1E; color: #FFFFFF; font: 400 19px Inter, sans-serif; line-height: 46px; border-top: 2px solid #378ADD; }
+  .code { position: absolute; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 24px; color: #D4D4D4; white-space: pre; }
+  .row { position: absolute; left: 0; height: 37px; line-height: 37px; }
+  .ln { position: absolute; left: 0; width: 56px; text-align: right; color: #858585; }
+  .tx { position: absolute; left: 84px; }
+  .lens { position: absolute; left: 84px; height: 30px; line-height: 30px; font: 400 19px Inter, sans-serif; color: #A0A0A0; white-space: pre; }
+  .stripe { position: absolute; left: 70px; right: 0; border-left: 6px solid; opacity: 0; }
+  .term { position: absolute; background: #181818; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .term-body { position: absolute; left: 28px; right: 28px; top: 66px; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 21px; line-height: 32px; color: #D4D4D4; white-space: pre-wrap; }
+  .title { position: absolute; font: 400 64px "Archivo Black", sans-serif; letter-spacing: -0.01em; color: #FFFFFF; white-space: nowrap; }
+  .title span { display: inline-block; }
+  .toast { position: absolute; width: 640px; background: #252526; border: 1px solid #454545; border-radius: 10px; padding: 20px 22px 18px 58px; color: #CCCCCC; font: 400 20px/1.45 Inter, sans-serif; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+  .toast .i { position: absolute; left: 20px; top: 21px; width: 24px; height: 24px; border-radius: 50%; background: #3794FF; color: #fff; font: 700 16px/24px Inter; text-align: center; }
+  .btn { display: inline-block; margin: 14px 10px 0 0; padding: 7px 16px; border-radius: 4px; background: #0E639C; color: #fff; font: 500 18px Inter, sans-serif; }
+  .btn.sec { background: #3A3D41; }
+  .cursor { position: absolute; width: 34px; height: 34px; z-index: 50; }
+</style>
+  <div data-hf-id="hf-1izm" id="root" data-composition-id="editor" data-width="1920" data-height="1080">
+
+    <div data-hf-id="hf-tejb" style="position:absolute; inset:0; background:#121212;"></div>
+    <div data-hf-id="hf-4b08" id="ed-stage" style="position:absolute; left:0; top:0; width:1920px; height:1080px;">
+      <div data-hf-id="hf-rv5w" id="ed-win" class="win" style="left:40px; top:170px; width:1840px; height:880px;">
+        <div data-hf-id="hf-ufsv" class="bar"><span data-hf-id="hf-kr6a" class="dot" style="background:#FF5F57"></span><span data-hf-id="hf-10vy" class="dot" style="background:#FEBC2E"></span><span data-hf-id="hf-mxao" class="dot" style="background:#28C840"></span><div data-hf-id="hf-qtaa" class="bar-title">auth.ts — hauntedHacks — Rishikhesh</div></div>
+        <div data-hf-id="hf-szf0" class="act"><svg data-hf-id="hf-g1h0" style="top:24px" viewBox="0 0 24 24" fill="none" stroke="#858585" stroke-width="1.6"><path data-hf-id="hf-djdu" d="M6 3h9l4 4v14H6z"/></svg><svg data-hf-id="hf-pyot" style="top:88px"><rect data-hf-id="hf-8aqh" x="4" y="10" width="16" height="11" rx="2"/><path data-hf-id="hf-apke" d="M8 10V7a4 4 0 0 1 8 0v3"/><circle data-hf-id="hf-4fpw" cx="12" cy="15.5" r="1.5"/></svg></div>
+        <div data-hf-id="hf-ai89" class="tabs" style="left:64px"><div data-hf-id="hf-5nrz" class="tab" style="left:0">auth.ts</div></div>
+        <div data-hf-id="hf-wnkf" id="ed-code" class="code" style="left:76px; top:112px; width:1700px; height:760px;">
+          <div data-hf-id="hf-q8oh" id="b-imp" style="position:absolute; left:0; top:0px; width:1660px;"><div data-hf-id="hf-lyxn" class="row" style="top:0px"><span data-hf-id="hf-5v02" class="ln">1</span><span data-hf-id="hf-y4wx" class="tx"><span data-hf-id="hf-bjkm" style="color:#C586C0">import</span> { <span data-hf-id="hf-cebq" style="color:#9CDCFE">db</span> } <span data-hf-id="hf-ad1n" style="color:#C586C0">from</span> <span data-hf-id="hf-yrd0" style="color:#CE9178">"./db"</span></span></div><div data-hf-id="hf-ywlz" class="row" style="top:37px"><span data-hf-id="hf-69b3" class="ln">2</span><span data-hf-id="hf-4rqh" class="tx"></span></div></div><div data-hf-id="hf-6foy" id="b-vt" style="position:absolute; left:0; top:74px; width:1660px;"><div data-hf-id="hf-o95u" id="b-vt-lens" class="lens" style="top:0">○ Free</div><div data-hf-id="hf-g10o" id="b-vt-stripe" class="stripe" style="top:30px; height:148px;"></div><div data-hf-id="hf-mzcf" id="b-vt-cur" class="stripe" style="top:67px; height:37px; border-left-width:10px;"></div><div data-hf-id="hf-qom0" id="vt-sig" class="row" style="top:30px"><span data-hf-id="hf-6nm4" class="ln">3</span><span data-hf-id="hf-xynt" class="tx"><span data-hf-id="hf-5bdx" style="color:#C586C0">export</span> <span data-hf-id="hf-iamn" style="color:#569CD6">function</span> <span data-hf-id="hf-3yrl" style="color:#DCDCAA">validateToken</span>(<span data-hf-id="hf-wowx" style="color:#9CDCFE">token</span>: <span data-hf-id="hf-awdi" style="color:#4EC9B0">string</span>) {</span></div><div data-hf-id="hf-hwwo" class="row" style="top:67px"><span data-hf-id="hf-71x5" class="ln">4</span><span data-hf-id="hf-oclf" class="tx">  <span data-hf-id="hf-6hmy" style="color:#569CD6">const</span> <span data-hf-id="hf-8k8x" style="color:#9CDCFE">claims</span> = <span data-hf-id="hf-czfa" style="color:#9CDCFE">JSON</span>.<span data-hf-id="hf-7dz1" style="color:#DCDCAA">parse</span>(<span data-hf-id="hf-y2ja" style="color:#DCDCAA">atob</span>(<span data-hf-id="hf-danp" style="color:#9CDCFE">token</span>.<span data-hf-id="hf-fz2y" style="color:#DCDCAA">split</span>(<span data-hf-id="hf-1xqj" style="color:#CE9178">"."</span>)[<span data-hf-id="hf-h11f" style="color:#B5CEA8">1</span>] ?? <span data-hf-id="hf-qk8m" style="color:#CE9178">"e30="</span>))</span></div><div data-hf-id="hf-ixt0" id="vt-ret" class="row" style="top:104px"><span data-hf-id="hf-7g86" class="ln">5</span><span data-hf-id="hf-0qxp" class="tx">  <span data-hf-id="hf-fl7p" style="color:#C586C0">return</span> <span data-hf-id="hf-y179" style="color:#9CDCFE">claims</span></span></div><div data-hf-id="hf-1zcz" id="vt-end" class="row" style="top:141px"><span data-hf-id="hf-7uj7" class="ln">6</span><span data-hf-id="hf-2nwc" class="tx">}</span></div><div data-hf-id="hf-jt6j" class="row" style="top:178px"><span data-hf-id="hf-88u8" class="ln">7</span><span data-hf-id="hf-1xus" class="tx"></span></div></div><div data-hf-id="hf-0smf" id="b-rs" style="position:absolute; left:0; top:289px; width:1660px;"><div data-hf-id="hf-dcm7" id="b-rs-lens" class="lens" style="top:0">○ Free</div><div data-hf-id="hf-becd" id="b-rs-stripe" class="stripe" style="top:30px; height:148px;"></div><div data-hf-id="hf-g3lu" id="b-rs-cur" class="stripe" style="top:67px; height:37px; border-left-width:10px;"></div><div data-hf-id="hf-gvv4" class="row" style="top:30px"><span data-hf-id="hf-2a8t" class="ln">8</span><span data-hf-id="hf-z5al" class="tx"><span data-hf-id="hf-v1a1" style="color:#C586C0">export</span> <span data-hf-id="hf-fj4x" style="color:#569CD6">async</span> <span data-hf-id="hf-p3lb" style="color:#569CD6">function</span> <span data-hf-id="hf-xo4j" style="color:#DCDCAA">refreshSession</span>(<span data-hf-id="hf-5wrt" style="color:#9CDCFE">id</span>: <span data-hf-id="hf-8icq" style="color:#4EC9B0">string</span>) {</span></div><div data-hf-id="hf-bfao" class="row" style="top:67px"><span data-hf-id="hf-2oju" class="ln">9</span><span data-hf-id="hf-voh5" class="tx">  <span data-hf-id="hf-ylqm" style="color:#569CD6">const</span> <span data-hf-id="hf-zqf4" style="color:#9CDCFE">session</span> = <span data-hf-id="hf-dnfb" style="color:#C586C0">await</span> <span data-hf-id="hf-atu2" style="color:#9CDCFE">db</span>.<span data-hf-id="hf-x9ta" style="color:#DCDCAA">session</span>(<span data-hf-id="hf-376l" style="color:#9CDCFE">id</span>)</span></div><div data-hf-id="hf-jdyu" class="row" style="top:104px"><span data-hf-id="hf-kmxy" class="ln">10</span><span data-hf-id="hf-0xb8" class="tx">  <span data-hf-id="hf-pta1" style="color:#C586C0">return</span> { ...<span data-hf-id="hf-k0hk" style="color:#9CDCFE">session</span>, <span data-hf-id="hf-yfor" style="color:#9CDCFE">refreshedAt</span>: <span data-hf-id="hf-ltog" style="color:#9CDCFE">Date</span>.<span data-hf-id="hf-dzfu" style="color:#DCDCAA">now</span>() }</span></div><div data-hf-id="hf-37r3" class="row" style="top:141px"><span data-hf-id="hf-k8mx" class="ln">11</span><span data-hf-id="hf-5q0k" class="tx">}</span></div><div data-hf-id="hf-xfln" class="row" style="top:178px"><span data-hf-id="hf-lfk0" class="ln">12</span><span data-hf-id="hf-1jjr" class="tx"></span></div></div><div data-hf-id="hf-ck3k" id="b-gu" style="position:absolute; left:0; top:504px; width:1660px;"><div data-hf-id="hf-sc30" id="b-gu-lens" class="lens" style="top:0">○ Free</div><div data-hf-id="hf-h7s0" id="b-gu-stripe" class="stripe" style="top:30px; height:111px;"></div><div data-hf-id="hf-9elt" id="b-gu-cur" class="stripe" style="top:67px; height:37px; border-left-width:10px;"></div><div data-hf-id="hf-ruzy" id="gu-sig" class="row" style="top:30px"><span data-hf-id="hf-l18z" class="ln">13</span><span data-hf-id="hf-0c7o" class="tx"><span data-hf-id="hf-w874" style="color:#C586C0">export</span> <span data-hf-id="hf-opaa" style="color:#569CD6">function</span> <span data-hf-id="hf-5l95" style="color:#DCDCAA">getUser</span>(<span data-hf-id="hf-ehks" style="color:#9CDCFE">token</span>: <span data-hf-id="hf-8wnr" style="color:#4EC9B0">string</span>) {</span></div><div data-hf-id="hf-m6up" id="gu-call" class="row" style="top:67px"><span data-hf-id="hf-twmy" id="gu-err" style="position:absolute; left:835.4px; color:#FF7A7A; opacity:0;">   Expected 1 arguments, but got 2.</span><span data-hf-id="hf-j1pu" class="ln">14</span><span data-hf-id="hf-smzr" class="tx">  <span data-hf-id="hf-z01n" style="color:#569CD6">const</span> <span data-hf-id="hf-z84c" style="color:#9CDCFE">claims</span> = <span data-hf-id="hf-c0k5" style="color:#DCDCAA">validateToken</span>(<span data-hf-id="hf-e39r" style="color:#9CDCFE">token</span>)</span></div><div data-hf-id="hf-kvpf" id="gu-null" class="row" style="top:104px; opacity:0;"><span data-hf-id="hf-inet" class="ln">15</span><span data-hf-id="hf-haq5" class="tx">  <span data-hf-id="hf-9kdw" style="color:#C586C0">if</span> (!<span data-hf-id="hf-yttb" style="color:#9CDCFE">claims</span>) <span data-hf-id="hf-r074" style="color:#C586C0">return</span> <span data-hf-id="hf-y1o1" style="color:#9CDCFE">null</span></span></div><div data-hf-id="hf-zv7q" id="gu-ret" class="row" style="top:104px"><span data-hf-id="hf-7psp" class="ln">15</span><span data-hf-id="hf-klp2" class="tx">  <span data-hf-id="hf-qlw3" style="color:#C586C0">return</span> <span data-hf-id="hf-b853" style="color:#9CDCFE">db</span>.<span data-hf-id="hf-7kr1" style="color:#DCDCAA">user</span>(<span data-hf-id="hf-00qe" style="color:#9CDCFE">claims</span>.<span data-hf-id="hf-nvba" style="color:#9CDCFE">sub</span>)</span></div><div data-hf-id="hf-cmhh" id="gu-end" class="row" style="top:141px"><span data-hf-id="hf-jubw" class="ln">16</span><span data-hf-id="hf-4j3h" class="tx">}</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div data-hf-id="hf-ozoe" id="ed-term" class="term" style="left:1300px; top:170px; width:580px; height:880px; opacity:0;">
+      <div data-hf-id="hf-c51b" class="bar"><span data-hf-id="hf-5al2" class="dot" style="background:#FF5F57"></span><span data-hf-id="hf-lvhe" class="dot" style="background:#FEBC2E"></span><span data-hf-id="hf-c1d4" class="dot" style="background:#28C840"></span><div data-hf-id="hf-t7xy" class="bar-title">claude — Rishikhesh</div></div>
+      <div data-hf-id="hf-ty2f" class="term-body">
+<span data-hf-id="hf-rs8p" style="color:#9CDCFE">⏺ Update(demo/sample/src/auth.ts)</span>
+<span data-hf-id="hf-zk7j" id="ed-deny" style="opacity:0"><span data-hf-id="hf-mv3i" style="color:#858585">  ⎿ </span><span data-hf-id="hf-1tvu" style="color:#F14C4C">PreToolUse:Edit denied:</span>
+     validateToken in demo/sample/src/auth.ts is locked by claude@Joel-Marc. You are #1 in line. Work on something else; you will be told here when it is yours.</span>
+<span data-hf-id="hf-9mu6" id="ed-next" style="opacity:0; color:#D4D4D4">⏺ Working on getUser meanwhile…</span>
+      </div>
+    </div>
+    <div data-hf-id="hf-vx1h" id="ed-fterm" class="term" style="left:1300px; top:170px; width:580px; height:380px; opacity:0; border:2px solid #D85A30;">
+      <div data-hf-id="hf-bqqa" class="bar"><span data-hf-id="hf-5ow3" class="dot" style="background:#FF5F57"></span><span data-hf-id="hf-m9sf" class="dot" style="background:#FEBC2E"></span><span data-hf-id="hf-aug1" class="dot" style="background:#28C840"></span><div data-hf-id="hf-bagc" class="bar-title">claude — Joel-Marc</div></div>
+      <div data-hf-id="hf-foon" class="term-body"><span data-hf-id="hf-rspm" style="color:#B48EAD">&gt; </span><span data-hf-id="hf-xq1b" id="ed-commit" style="display:inline-block; white-space:nowrap; clip-path:inset(0 100% 0 0);">commit</span>
+<span data-hf-id="hf-r7i9" id="ed-commit2" style="opacity:0"><span data-hf-id="hf-ajsa" style="color:#9CDCFE">⏺ Bash(git commit -m "validateToken: check issuer")</span>
+<span data-hf-id="hf-icc2" style="color:#858585">  ⎿ </span>[main 4ac7878] validateToken: check issuer</span></div>
+    </div>
+    <div data-hf-id="hf-6yyo" id="ed-hterm" class="term" style="left:1300px; top:770px; width:580px; height:280px; opacity:0; border:2px solid #378ADD;">
+      <div data-hf-id="hf-bcf9" class="bar"><span data-hf-id="hf-6374" class="dot" style="background:#FF5F57"></span><span data-hf-id="hf-mo3g" class="dot" style="background:#FEBC2E"></span><span data-hf-id="hf-b8r2" class="dot" style="background:#28C840"></span><div data-hf-id="hf-25sq" class="bar-title">claude — Rishikhesh</div></div>
+      <div data-hf-id="hf-t6uw" class="term-body" style="font-size:19px; line-height:28px;">validateToken in demo/sample/src/auth.ts is yours now. claude@Joel-Marc committed 4ac7878: validateToken: check issuer. <span data-hf-id="hf-492w" style="color:#378ADD">Foreman already merged 4ac7878 into your checkout</span>, so you are building on their latest version.</div>
+    </div>
+    <div data-hf-id="hf-1h50" id="ed-toast" class="toast" data-layout-allow-occlusion style="left:1300px; top:565px; width:580px; font-size:18px; opacity:0; z-index:30;"><div data-hf-id="hf-bf74" class="i">i</div>validateToken is yours now (from claude@Joel-Marc). "validateToken: check issuer" — your agent merges 4ac7878 automatically at its next step.<div data-hf-id="hf-yeow"><span data-hf-id="hf-3ak9" class="btn">Merge now</span></div></div>
+    <div data-hf-id="hf-1kzs" id="ed-t1" class="title" style="left:60px; top:52px;"><span data-hf-id="hf-9h81" class="ed-t1-w" style="">Lock</span> <span data-hf-id="hf-3r3h" class="ed-t1-w" style="">the</span> <span data-hf-id="hf-wm9u" class="ed-t1-w" style="">function,</span> <span data-hf-id="hf-l1wz" class="ed-t1-w" style="">not</span> <span data-hf-id="hf-atnl" class="ed-t1-w" style="">the</span> <span data-hf-id="hf-7ch6" class="ed-t1-w" style="">file.</span></div>
+    <div data-hf-id="hf-gbu7" id="ed-t2" class="title" style="left:60px; top:52px; opacity:0;"><span data-hf-id="hf-xnv6" class="ed-t2-w" style="">Wait</span> <span data-hf-id="hf-v13s" class="ed-t2-w" style="">in</span> <span data-hf-id="hf-t99z" class="ed-t2-w" style="">line,</span> <span data-hf-id="hf-7qek" class="ed-t2-w" style="">not</span> <span data-hf-id="hf-xvw0" class="ed-t2-w" style="">in</span> <span data-hf-id="hf-1b5q" class="ed-t2-w" style="">a</span> <span data-hf-id="hf-knhp" class="ed-t2-w" style="">conflict.</span></div>
+    <div data-hf-id="hf-xuwi" id="ed-t3" class="title" style="left:60px; top:52px; opacity:0;"><span data-hf-id="hf-7zfc" class="ed-t3-w" style="color:#EF9F27">Warned</span> <span data-hf-id="hf-cbtn" class="ed-t3-w" style="">before</span> <span data-hf-id="hf-l019" class="ed-t3-w" style="">it</span> <span data-hf-id="hf-w2ji" class="ed-t3-w" style="">breaks.</span></div>
+    <div data-hf-id="hf-hyol" id="ed-t4" class="title" style="left:60px; top:52px; opacity:0;"><span data-hf-id="hf-m5t2" class="ed-t4-w" style="">Commit.</span> <span data-hf-id="hf-4ru9" class="ed-t4-w" style="">Handed</span> <span data-hf-id="hf-d32b" class="ed-t4-w" style="">over.</span> <span data-hf-id="hf-xovb" class="ed-t4-w" style="">Already</span> <span data-hf-id="hf-1ucl" class="ed-t4-w" style="">merged.</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // ---- 0–7.5: locks ----
+    tl.fromTo("#ed-win", { scale: 1.06, filter: "blur(10px)" }, { scale: 1, filter: "blur(0px)", duration: 0.5, ease: "expo.out" }, 0);
+    tl.fromTo("#ed-t1 .ed-t1-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 0.4);
+    tl.fromTo("#b-vt-cur", { opacity: 0, borderLeftColor: "#D85A30", backgroundColor: "rgba(216,90,48,0.25)" }, { opacity: 1, duration: 0.2 }, 0.8);
+    tl.fromTo("#b-vt-stripe", { opacity: 0, borderLeftColor: "#D85A30", backgroundColor: "rgba(216,90,48,0.12)" }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 1.2);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "○ Free"; }, [], 0.05);
+
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · editing · <1m"; }, [], 1.2);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "○ Free"; }, [], 1.19);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · 1m · ⏳ claude@Rishikhesh waiting"; }, [], 7.9);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · editing · <1m"; }, [], 7.890000000000001);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Rishikhesh · editing · <1m"; }, [], 19.6);
+    tl.call(() => { document.getElementById("b-vt-lens").textContent = "🔒 claude@Joel-Marc · 1m · ⏳ claude@Rishikhesh waiting"; }, [], 19.59);
+    tl.fromTo("#b-gu-cur", { opacity: 0, borderLeftColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.25)" }, { opacity: 1, duration: 0.2 }, 2.3);
+    tl.fromTo("#b-gu-stripe", { opacity: 0, borderLeftColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.12)" }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 2.5);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "○ Free"; }, [], 0.05);
+
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · <1m"; }, [], 2.5);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "○ Free"; }, [], 2.49);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · 1m  |  ⚠ calls validateToken, changed by claude@Joel-Marc"; }, [], 13.2);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · <1m"; }, [], 13.19);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · 1m"; }, [], 20);
+    tl.call(() => { document.getElementById("b-gu-lens").textContent = "🔒 claude@Rishikhesh · editing · 1m  |  ⚠ calls validateToken, changed by claude@Joel-Marc"; }, [], 19.99);
+    // the host's edits to getUser: pass the issuer, then a null check
+    tl.set("#gu-call .tx", { innerHTML: "  <span style=\"color:#569CD6\">const</span> <span style=\"color:#9CDCFE\">claims</span> = <span style=\"color:#DCDCAA\">validateToken</span>(<span style=\"color:#9CDCFE\">token</span>)" }, 0);
+    tl.set("#gu-call .tx", { innerHTML: "  <span style=\"color:#569CD6\">const</span> <span style=\"color:#9CDCFE\">claims</span> = <span style=\"color:#DCDCAA\">validateToken</span>(<span style=\"color:#9CDCFE\">token</span>, <span style=\"color:#CE9178\">\"foreman\"</span>)" }, 3.2);
+    tl.fromTo(["#gu-ret", "#gu-end"], { y: 0 }, { y: 37, duration: 0.25, ease: "power2.out" }, 4.2);
+    tl.set("#gu-ret .tx", { innerHTML: "  <span style=\"color:#C586C0\">return</span> <span style=\"color:#9CDCFE\">db</span>.<span style=\"color:#DCDCAA\">user</span>(<span style=\"color:#9CDCFE\">claims</span>.<span style=\"color:#9CDCFE\">sub</span>)" }, 0);
+    tl.set("#gu-ret .ln", { textContent: "15" }, 0);
+    tl.set("#gu-end .ln", { textContent: "16" }, 0);
+    tl.set("#gu-ret .ln", { textContent: "16" }, 4.2);
+    tl.set("#gu-end .ln", { textContent: "17" }, 4.2);
+    tl.fromTo("#b-gu-stripe", { scaleY: 1, transformOrigin: "50% 0%" }, { scaleY: 4 / 3, duration: 0.25, ease: "power2.out" }, 4.2);
+    tl.fromTo("#gu-null", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 4.35);
+    tl.fromTo("#b-rs-stripe", { opacity: 0, borderLeftColor: "#D85A30", backgroundColor: "rgba(216,90,48,0.12)" }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 4.9);
+    tl.call(() => { document.getElementById("b-rs-lens").textContent = "○ Free"; }, [], 0.05);
+
+    tl.call(() => { document.getElementById("b-rs-lens").textContent = "🔒 claude@Joel-Marc · <1m"; }, [], 4.9);
+    tl.call(() => { document.getElementById("b-rs-lens").textContent = "○ Free"; }, [], 4.890000000000001);
+    tl.call(() => { document.getElementById("b-rs-lens").textContent = "○ Free"; }, [], 19.6);
+    tl.call(() => { document.getElementById("b-rs-lens").textContent = "🔒 claude@Joel-Marc · <1m"; }, [], 19.59);
+    tl.fromTo("#b-vt-cur", { y: 0 }, { y: 74, duration: 0.2, ease: "power2.out" }, 5.6);
+
+    // ---- 7.5–13: refusal ----
+    tl.to("#ed-t1", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 7.3);
+    tl.fromTo("#ed-term", { opacity: 0, x: 120 }, { opacity: 1, x: 0, duration: 0.6, ease: "expo.out" }, 7.55);
+    tl.fromTo("#ed-deny", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 8.2);
+    tl.fromTo("#ed-next", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 10.4);
+    tl.fromTo("#ed-t2", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 7.7);
+    tl.fromTo("#ed-t2 .ed-t2-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 7.7);
+    tl.to("#ed-t2", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 12.6);
+    tl.to("#ed-term", { opacity: 0, x: 120, duration: 0.3, ease: "power3.in" }, 12.6);
+
+    // ---- 13–18: caller warning ----
+    tl.fromTo("#gu-sig .tx", { textDecoration: "none" }, { textDecoration: "underline wavy #EF9F27", duration: 0.01 }, 13.2);
+    tl.fromTo("#gu-err", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 13.5);
+    tl.fromTo("#ed-t3", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 13.4);
+    tl.fromTo("#ed-t3 .ed-t3-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 13.4);
+    tl.to("#b-gu-cur", { y: 74, duration: 0.2, ease: "power2.out" }, 14.8);
+    tl.to("#b-gu-cur", { y: 37, duration: 0.2, ease: "power2.out" }, 16.3);
+    tl.to("#ed-t3", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 17.7);
+
+    // ---- 18–26: handoff ----
+    tl.fromTo("#ed-fterm", { opacity: 0, x: 120 }, { opacity: 1, x: 0, duration: 0.6, ease: "expo.out" }, 18.0);
+    tl.fromTo("#ed-commit", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.45, ease: "steps(6)" }, 18.5);
+    tl.fromTo("#ed-commit2", { opacity: 0 }, { opacity: 1, duration: 0.15 }, 19.1);
+    // orange → blue on validateToken, refreshSession released, merged code arrives
+    tl.to("#b-vt-stripe", { borderLeftColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.12)", duration: 0.35, ease: "power2.inOut" }, 19.6);
+    tl.to("#b-vt-cur", { opacity: 0, duration: 0.15 }, 19.6);
+    tl.to("#b-rs-stripe", { opacity: 0, duration: 0.3 }, 19.6);
+    tl.set("#vt-sig .tx", { innerHTML: "<span style=\"color:#C586C0\">export</span> <span style=\"color:#569CD6\">function</span> <span style=\"color:#DCDCAA\">validateToken</span>(<span style=\"color:#9CDCFE\">token</span>: <span style=\"color:#4EC9B0\">string</span>) {" }, 0);
+    tl.set("#vt-sig .tx", { innerHTML: "<span style=\"color:#C586C0\">export</span> <span style=\"color:#569CD6\">function</span> <span style=\"color:#DCDCAA\">validateToken</span>(<span style=\"color:#9CDCFE\">token</span>: <span style=\"color:#4EC9B0\">string</span>, <span style=\"color:#9CDCFE\">expectedIssuer</span>: <span style=\"color:#4EC9B0\">string</span>) {" }, 19.75);
+    tl.set("#vt-ret .tx", { innerHTML: "  <span style=\"color:#C586C0\">return</span> <span style=\"color:#9CDCFE\">claims</span>" }, 0);
+    tl.set("#vt-ret .tx", { innerHTML: "  <span style=\"color:#C586C0\">if</span> (<span style=\"color:#9CDCFE\">claims</span>.<span style=\"color:#9CDCFE\">iss</span> !== <span style=\"color:#9CDCFE\">expectedIssuer</span>) <span style=\"color:#C586C0\">return</span> <span style=\"color:#9CDCFE\">null</span>" }, 19.75);
+    tl.set("#vt-end .tx", { innerHTML: "}" }, 0);
+    tl.set("#vt-end .tx", { innerHTML: "  <span style=\"color:#C586C0\">return</span> <span style=\"color:#9CDCFE\">claims</span>" }, 19.75);
+    tl.fromTo("#ed-toast", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, ease: "expo.out" }, 19.8);
+    tl.fromTo("#ed-hterm", { opacity: 0, x: 120 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 20.2);
+    tl.to("#gu-sig .tx", { textDecoration: "none", duration: 0.01 }, 20.0);
+    tl.to("#gu-err", { opacity: 0, duration: 0.2 }, 20.0);
+    tl.fromTo("#ed-t4", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 19.9);
+    tl.fromTo("#ed-t4 .ed-t4-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 19.9);
+    tl.to("#ed-toast", { opacity: 0, duration: 0.2, ease: "power3.in" }, 22.6);
+    tl.to("#b-gu-cur", { opacity: 0, duration: 0.15 }, 22.7);
+    tl.fromTo("#b-vt-cur", { opacity: 0, y: 0, borderLeftColor: "#378ADD", backgroundColor: "rgba(55,138,221,0.25)" }, { opacity: 1, y: 0, duration: 0.2, immediateRender: false }, 22.8);
+    tl.to("#b-vt-cur", { y: 74, duration: 0.2, ease: "power2.out" }, 24.0);
+    tl.to("#ed-t4", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 25.7);
+    tl.set({}, {}, 26);
+    window.__timelines["editor"] = tl;
+  </script>
+</template>

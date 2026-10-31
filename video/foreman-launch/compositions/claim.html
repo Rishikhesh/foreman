@@ -1,0 +1,70 @@
+<template>
+  <style>
+  #root { position: absolute; inset: 0; overflow: hidden; font-family: Inter, sans-serif; }
+  .win { position: absolute; background: #1E1E1E; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #323233; display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bar-title { position: absolute; left: 0; right: 0; text-align: center; color: #CCCCCC; font: 500 18px Inter, sans-serif; }
+  .act { position: absolute; left: 0; top: 44px; bottom: 0; width: 64px; background: #333333; }
+  .act svg { position: absolute; left: 16px; width: 32px; height: 32px; }
+  .tabs { position: absolute; top: 44px; right: 0; height: 46px; background: #252526; }
+  .tab { position: absolute; top: 0; height: 46px; padding: 0 24px; background: #1E1E1E; color: #FFFFFF; font: 400 19px Inter, sans-serif; line-height: 46px; border-top: 2px solid #378ADD; }
+  .code { position: absolute; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 24px; color: #D4D4D4; white-space: pre; }
+  .row { position: absolute; left: 0; height: 37px; line-height: 37px; }
+  .ln { position: absolute; left: 0; width: 56px; text-align: right; color: #858585; }
+  .tx { position: absolute; left: 84px; }
+  .lens { position: absolute; left: 84px; height: 30px; line-height: 30px; font: 400 19px Inter, sans-serif; color: #A0A0A0; white-space: pre; }
+  .stripe { position: absolute; left: 70px; right: 0; border-left: 6px solid; opacity: 0; }
+  .term { position: absolute; background: #181818; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .term-body { position: absolute; left: 28px; right: 28px; top: 66px; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 21px; line-height: 32px; color: #D4D4D4; white-space: pre-wrap; }
+  .title { position: absolute; font: 400 64px "Archivo Black", sans-serif; letter-spacing: -0.01em; color: #FFFFFF; white-space: nowrap; }
+  .title span { display: inline-block; }
+  .toast { position: absolute; width: 640px; background: #252526; border: 1px solid #454545; border-radius: 10px; padding: 20px 22px 18px 58px; color: #CCCCCC; font: 400 20px/1.45 Inter, sans-serif; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+  .toast .i { position: absolute; left: 20px; top: 21px; width: 24px; height: 24px; border-radius: 50%; background: #3794FF; color: #fff; font: 700 16px/24px Inter; text-align: center; }
+  .btn { display: inline-block; margin: 14px 10px 0 0; padding: 7px 16px; border-radius: 4px; background: #0E639C; color: #fff; font: 500 18px Inter, sans-serif; }
+  .btn.sec { background: #3A3D41; }
+  .cursor { position: absolute; width: 34px; height: 34px; z-index: 50; }
+</style>
+  <div data-hf-id="hf-dc55" id="root" data-composition-id="claim" data-width="1920" data-height="1080">
+
+    <div data-hf-id="hf-tejb" style="position:absolute; inset:0; background:#121212;"></div>
+    <div data-hf-id="hf-raq6" id="cl-win" class="win" style="left:40px; top:170px; width:1840px; height:880px;">
+      <div data-hf-id="hf-ufsv" class="bar"><span data-hf-id="hf-kr6a" class="dot" style="background:#FF5F57"></span><span data-hf-id="hf-10vy" class="dot" style="background:#FEBC2E"></span><span data-hf-id="hf-mxao" class="dot" style="background:#28C840"></span><div data-hf-id="hf-qtaa" class="bar-title">auth.ts — hauntedHacks — Rishikhesh</div></div>
+      <div data-hf-id="hf-szf0" class="act"></div>
+      <div data-hf-id="hf-ai89" class="tabs" style="left:64px"><div data-hf-id="hf-5nrz" class="tab" style="left:0">auth.ts</div></div>
+      <div data-hf-id="hf-pl9g" class="code" style="left:76px; top:112px;">
+        <div data-hf-id="hf-ao4y" id="cl-stripe-a" class="stripe" style="top:74px; height:148px; border-left-color:#378ADD; background:rgba(55,138,221,0.12); opacity:1;"></div>
+        <div data-hf-id="hf-6gj9" id="cl-stripe-b" class="stripe" style="top:481px; height:148px; border-left-color:#378ADD; background:rgba(55,138,221,0.12); opacity:1;"></div>
+        <div data-hf-id="hf-lyxn" class="row" style="top:0px"><span data-hf-id="hf-5v02" class="ln">1</span><span data-hf-id="hf-y4wx" class="tx"><span data-hf-id="hf-bjkm" style="color:#C586C0">import</span> { <span data-hf-id="hf-cebq" style="color:#9CDCFE">db</span> } <span data-hf-id="hf-ad1n" style="color:#C586C0">from</span> <span data-hf-id="hf-yrd0" style="color:#CE9178">"./db"</span></span></div>
+        <div data-hf-id="hf-ywlz" class="row" style="top:37px"><span data-hf-id="hf-69b3" class="ln">2</span><span data-hf-id="hf-4rqh" class="tx"></span></div>
+        <div data-hf-id="hf-av2g" class="row" style="top:74px"><span data-hf-id="hf-6nm4" class="ln">3</span><span data-hf-id="hf-mefj" class="tx"><span data-hf-id="hf-5bdx" style="color:#C586C0">export</span> <span data-hf-id="hf-iamn" style="color:#569CD6">function</span> <span data-hf-id="hf-3yrl" style="color:#DCDCAA">validateToken</span>(<span data-hf-id="hf-wowx" style="color:#9CDCFE">token</span>: <span data-hf-id="hf-awdi" style="color:#4EC9B0">string</span>, <span data-hf-id="hf-k0lz" style="color:#9CDCFE">expectedIssuer</span>: <span data-hf-id="hf-8icq" style="color:#4EC9B0">string</span>) {</span></div>
+        <div data-hf-id="hf-sso4" class="row" style="top:111px"><span data-hf-id="hf-71x5" class="ln">4</span><span data-hf-id="hf-oclf" class="tx">  <span data-hf-id="hf-6hmy" style="color:#569CD6">const</span> <span data-hf-id="hf-8k8x" style="color:#9CDCFE">claims</span> = <span data-hf-id="hf-czfa" style="color:#9CDCFE">JSON</span>.<span data-hf-id="hf-7dz1" style="color:#DCDCAA">parse</span>(<span data-hf-id="hf-y2ja" style="color:#DCDCAA">atob</span>(<span data-hf-id="hf-danp" style="color:#9CDCFE">token</span>.<span data-hf-id="hf-fz2y" style="color:#DCDCAA">split</span>(<span data-hf-id="hf-1xqj" style="color:#CE9178">"."</span>)[<span data-hf-id="hf-h11f" style="color:#B5CEA8">1</span>] ?? <span data-hf-id="hf-qk8m" style="color:#CE9178">"e30="</span>))</span></div>
+        <div data-hf-id="hf-1zzi" class="row" style="top:148px"><span data-hf-id="hf-7g86" class="ln">5</span><span data-hf-id="hf-1jid" class="tx">  <span data-hf-id="hf-9kdw" style="color:#C586C0">if</span> (<span data-hf-id="hf-y179" style="color:#9CDCFE">claims</span>.<span data-hf-id="hf-e2jx" style="color:#9CDCFE">iss</span> !== <span data-hf-id="hf-wo47" style="color:#9CDCFE">expectedIssuer</span>) <span data-hf-id="hf-fl7p" style="color:#C586C0">return</span> <span data-hf-id="hf-y1o1" style="color:#9CDCFE">null</span></span></div>
+        <div data-hf-id="hf-70xz" class="row" style="top:185px"><span data-hf-id="hf-7uj7" class="ln">6</span><span data-hf-id="hf-0qxp" class="tx">  <span data-hf-id="hf-pta1" style="color:#C586C0">return</span> <span data-hf-id="hf-z84c" style="color:#9CDCFE">claims</span></span></div>
+        <div data-hf-id="hf-ksfd" class="row" style="top:222px"><span data-hf-id="hf-88u8" class="ln">7</span><span data-hf-id="hf-2nwc" class="tx">}</span></div>
+        <div data-hf-id="hf-6abf" class="row" style="top:259px"><span data-hf-id="hf-2a8t" class="ln">8</span><span data-hf-id="hf-1xus" class="tx"></span></div>
+        <div data-hf-id="hf-8ja0" class="row" style="top:296px"><span data-hf-id="hf-2oju" class="ln">9</span><span data-hf-id="hf-xynt" class="tx"><span data-hf-id="hf-v1a1" style="color:#C586C0">export</span> <span data-hf-id="hf-fj4x" style="color:#569CD6">async</span> <span data-hf-id="hf-p3lb" style="color:#569CD6">function</span> <span data-hf-id="hf-xo4j" style="color:#DCDCAA">refreshSession</span>(<span data-hf-id="hf-5wrt" style="color:#9CDCFE">id</span>: <span data-hf-id="hf-8wnr" style="color:#4EC9B0">string</span>) {</span></div>
+        <div data-hf-id="hf-k9x6" class="row" style="top:333px"><span data-hf-id="hf-kmxy" class="ln">10</span><span data-hf-id="hf-voh5" class="tx">  <span data-hf-id="hf-ylqm" style="color:#569CD6">const</span> <span data-hf-id="hf-zqf4" style="color:#9CDCFE">session</span> = <span data-hf-id="hf-dnfb" style="color:#C586C0">await</span> <span data-hf-id="hf-atu2" style="color:#9CDCFE">db</span>.<span data-hf-id="hf-x9ta" style="color:#DCDCAA">session</span>(<span data-hf-id="hf-376l" style="color:#9CDCFE">id</span>)</span></div>
+        <div data-hf-id="hf-rce5" class="row" style="top:370px"><span data-hf-id="hf-k8mx" class="ln">11</span><span data-hf-id="hf-0xb8" class="tx">  <span data-hf-id="hf-r074" style="color:#C586C0">return</span> { ...<span data-hf-id="hf-k0hk" style="color:#9CDCFE">session</span>, <span data-hf-id="hf-yfor" style="color:#9CDCFE">refreshedAt</span>: <span data-hf-id="hf-ltog" style="color:#9CDCFE">Date</span>.<span data-hf-id="hf-dzfu" style="color:#DCDCAA">now</span>() }</span></div>
+        <div data-hf-id="hf-eay8" class="row" style="top:407px"><span data-hf-id="hf-lfk0" class="ln">12</span><span data-hf-id="hf-5q0k" class="tx">}</span></div>
+        <div data-hf-id="hf-zi2n" class="row" style="top:444px"><span data-hf-id="hf-l18z" class="ln">13</span><span data-hf-id="hf-1jjr" class="tx"></span></div>
+        <div data-hf-id="hf-2f52" class="row" style="top:481px"><span data-hf-id="hf-j1pu" class="ln">14</span><span data-hf-id="hf-z5al" class="tx"><span data-hf-id="hf-w874" style="color:#C586C0">export</span> <span data-hf-id="hf-opaa" style="color:#569CD6">function</span> <span data-hf-id="hf-5l95" style="color:#DCDCAA">getUser</span>(<span data-hf-id="hf-ehks" style="color:#9CDCFE">token</span>: <span data-hf-id="hf-9ays" style="color:#4EC9B0">string</span>) {</span></div>
+        <div data-hf-id="hf-h13l" class="row" style="top:518px"><span data-hf-id="hf-inet" class="ln">15</span><span data-hf-id="hf-zwxv" class="tx">  <span data-hf-id="hf-z01n" style="color:#569CD6">const</span> <span data-hf-id="hf-yttb" style="color:#9CDCFE">claims</span> = <span data-hf-id="hf-c0k5" style="color:#DCDCAA">validateToken</span>(<span data-hf-id="hf-e39r" style="color:#9CDCFE">token</span>, <span data-hf-id="hf-bsp3" style="color:#CE9178">"foreman"</span>)</span></div>
+        <div data-hf-id="hf-0drk" class="row" style="top:555px"><span data-hf-id="hf-jubw" class="ln">16</span><span data-hf-id="hf-haq5" class="tx">  <span data-hf-id="hf-9jf0" style="color:#C586C0">if</span> (!<span data-hf-id="hf-00qe" style="color:#9CDCFE">claims</span>) <span data-hf-id="hf-qlw3" style="color:#C586C0">return</span> <span data-hf-id="hf-kyjp" style="color:#9CDCFE">null</span></span></div>
+        <div data-hf-id="hf-q6s3" class="row" style="top:592px"><span data-hf-id="hf-jg0v" class="ln">17</span><span data-hf-id="hf-klp2" class="tx">  <span data-hf-id="hf-omcy" style="color:#C586C0">return</span> <span data-hf-id="hf-b853" style="color:#9CDCFE">db</span>.<span data-hf-id="hf-7kr1" style="color:#DCDCAA">user</span>(<span data-hf-id="hf-zmfd" style="color:#9CDCFE">claims</span>.<span data-hf-id="hf-nvba" style="color:#9CDCFE">sub</span>)</span></div>
+        <div data-hf-id="hf-i71q" class="row" style="top:629px"><span data-hf-id="hf-hghq" class="ln">18</span><span data-hf-id="hf-4j3h" class="tx">}</span></div>
+      </div>
+    </div>
+    <div data-hf-id="hf-8d6l" id="cl-t" class="title" style="left:60px; top:52px;"><span data-hf-id="hf-1509" class="cl-t-w" style="">Two</span> <span data-hf-id="hf-2jyb" class="cl-t-w" style="">agents.</span> <span data-hf-id="hf-meom" class="cl-t-w" style="color:#378ADD">Zero</span> <span data-hf-id="hf-xafr" class="cl-t-w" style="">merge</span> <span data-hf-id="hf-i9ge" class="cl-t-w" style="">conflicts.</span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.to(["#cl-stripe-a", "#cl-stripe-b"], { opacity: 0, duration: 0.4, ease: "power2.inOut" }, 0.6);
+    tl.fromTo("#cl-t .cl-t-w", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.13, ease: "power4.out", stagger: 0.067 }, 0.9);
+    tl.to("#cl-win", { scale: 0.08, opacity: 0, duration: 0.45, ease: "power3.in" }, 3.55);
+    tl.to("#cl-t", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 3.6);
+    tl.set({}, {}, 4);
+    window.__timelines["claim"] = tl;
+  </script>
+</template>

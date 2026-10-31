@@ -1,0 +1,48 @@
+<template>
+  <style>
+  #root { position: absolute; inset: 0; overflow: hidden; font-family: Inter, sans-serif; }
+  .win { position: absolute; background: #1E1E1E; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 44px; background: #323233; display: flex; align-items: center; gap: 10px; padding: 0 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bar-title { position: absolute; left: 0; right: 0; text-align: center; color: #CCCCCC; font: 500 18px Inter, sans-serif; }
+  .act { position: absolute; left: 0; top: 44px; bottom: 0; width: 64px; background: #333333; }
+  .act svg { position: absolute; left: 16px; width: 32px; height: 32px; }
+  .tabs { position: absolute; top: 44px; right: 0; height: 46px; background: #252526; }
+  .tab { position: absolute; top: 0; height: 46px; padding: 0 24px; background: #1E1E1E; color: #FFFFFF; font: 400 19px Inter, sans-serif; line-height: 46px; border-top: 2px solid #378ADD; }
+  .code { position: absolute; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 24px; color: #D4D4D4; white-space: pre; }
+  .row { position: absolute; left: 0; height: 37px; line-height: 37px; }
+  .ln { position: absolute; left: 0; width: 56px; text-align: right; color: #858585; }
+  .tx { position: absolute; left: 84px; }
+  .lens { position: absolute; left: 84px; height: 30px; line-height: 30px; font: 400 19px Inter, sans-serif; color: #A0A0A0; white-space: pre; }
+  .stripe { position: absolute; left: 70px; right: 0; border-left: 6px solid; opacity: 0; }
+  .term { position: absolute; background: #181818; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .term-body { position: absolute; left: 28px; right: 28px; top: 66px; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: Menlo, "JetBrains Mono", monospace; font-size: 21px; line-height: 32px; color: #D4D4D4; white-space: pre-wrap; }
+  .title { position: absolute; font: 400 64px "Archivo Black", sans-serif; letter-spacing: -0.01em; color: #FFFFFF; white-space: nowrap; }
+  .title span { display: inline-block; }
+  .toast { position: absolute; width: 640px; background: #252526; border: 1px solid #454545; border-radius: 10px; padding: 20px 22px 18px 58px; color: #CCCCCC; font: 400 20px/1.45 Inter, sans-serif; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+  .toast .i { position: absolute; left: 20px; top: 21px; width: 24px; height: 24px; border-radius: 50%; background: #3794FF; color: #fff; font: 700 16px/24px Inter; text-align: center; }
+  .btn { display: inline-block; margin: 14px 10px 0 0; padding: 7px 16px; border-radius: 4px; background: #0E639C; color: #fff; font: 500 18px Inter, sans-serif; }
+  .btn.sec { background: #3A3D41; }
+  .cursor { position: absolute; width: 34px; height: 34px; z-index: 50; }
+</style>
+  <div data-hf-id="hf-32ii" id="root" data-composition-id="endcard" data-width="1920" data-height="1080">
+
+    <div data-hf-id="hf-v6ak" style="position:absolute; inset:0; background:#FFFFFF;"></div>
+    <div data-hf-id="hf-169o" id="ec-lock" style="position:absolute; left:250px; top:330px; width:300px; height:300px;"><svg data-hf-id="hf-5lhi" viewBox="0 0 24 24" fill="none" stroke="#1E1E1E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect data-hf-id="hf-8aqh" x="4" y="10" width="16" height="11" rx="2"/><path data-hf-id="hf-apke" d="M8 10V7a4 4 0 0 1 8 0v3"/><circle data-hf-id="hf-4fpw" cx="12" cy="15.5" r="1.5"/></svg></div>
+    <div data-hf-id="hf-gbea" id="ec-name" style="position:absolute; left:600px; top:330px; font:400 170px 'Archivo Black', sans-serif; letter-spacing:-0.02em; color:#1E1E1E; clip-path:inset(0 100% 0 0);">Foreman</div>
+    <div data-hf-id="hf-n889" id="ec-sub" style="position:absolute; left:610px; top:560px; font:500 48px Inter, sans-serif; color:#3A3A3A; opacity:0;">Google Docs for coding agents</div>
+    <div data-hf-id="hf-cgur" id="ec-cta" style="position:absolute; left:610px; top:660px; font:700 40px Inter, sans-serif; color:#378ADD; opacity:0;">github.com/Rishikhesh/hauntedHacks</div>
+    <div data-hf-id="hf-neel" id="ec-built" style="position:absolute; left:610px; top:740px; font:400 30px Inter, sans-serif; color:#6A6A6A; opacity:0;">Built on Terse Durable Actors + Agent Relay</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#ec-lock", { x: -300, rotation: -20, opacity: 0 }, { x: 0, rotation: 0, opacity: 1, duration: 0.7, ease: "expo.out" }, 0.1);
+    tl.fromTo("#ec-name", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power3.out" }, 0.6);
+    tl.fromTo("#ec-sub", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 1.1);
+    tl.fromTo("#ec-cta", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 1.4);
+    tl.fromTo("#ec-built", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 1.7);
+    tl.set({}, {}, 4.5);
+    window.__timelines["endcard"] = tl;
+  </script>
+</template>

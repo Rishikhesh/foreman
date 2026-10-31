@@ -8,3 +8,7 @@ generated
 .demo/
 .foreman-logs/
 .foreman-tunnel.json
+video/*/renders/
+video/*/.hyperframes/
+video/*/node_modules/
+video/*/.thumbnails/
