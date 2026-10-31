@@ -58,13 +58,14 @@ Open the folder in VS Code and click **Trust**. Then go to the Foreman sidebar a
 - **Room codes:** a code opens one room and expires after 24 hours.
 - **Demo identities:** `--dev <name>` is accepted only from the server's own laptop, never through the tunnel.
 
-## Try it alone first
+## Run the demo together
 
-```bash
-bun demo/setup.ts       # two worktrees in .demo/ stand in for two people
-code -n .demo/rishi && code -n .demo/friend   # open demo/sample/src/auth.ts in both
-bun demo/simulate.ts    # two fake agents run the full flow; every colour clears at the end
-```
+Each person uses their own clone, on their own laptop.
+
+1. Both run `bun run demo:reset`. It puts `demo/sample` back to the GitHub version without touching anything else.
+2. Both open `demo/sample/src/auth.ts` in VS Code.
+3. Both start a new Claude Code session in the clone. Hooks load when a session starts.
+4. Give the two Claudes tasks that overlap on one function, e.g. `validateToken`. Have one of them hold its change until you say "commit".
 
 ## Commands
 

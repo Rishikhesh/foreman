@@ -10,7 +10,8 @@
     "generate": "durable-actors generate",
     "server": "bun server.ts",
     "test": "bun test ./src ./cli ./vscode-ext ./deploy",
-    "build:ext": "bun build vscode-ext/src/extension.ts --target node --format cjs --external vscode --outfile vscode-ext/dist/extension.js"
+    "build:ext": "bun build vscode-ext/src/extension.ts --target node --format cjs --external vscode --outfile vscode-ext/dist/extension.js",
+    "demo:reset": "git fetch -q origin && git checkout origin/main -- demo/sample && (git diff --cached --quiet -- demo/sample || git commit -qm 'demo: reset sample' --no-verify -- demo/sample) && echo 'demo/sample is back to the GitHub version'"
   },
   "dependencies": {
     "@agent-relay/sdk": "15.0.1",
