@@ -93,15 +93,17 @@ function decorate(editor: vscode.TextEditor) {
     for (const r of rangesForLocks(state, file, editor.document.getText())) {
       const color = hex(r.holder)
       const lock = state.locks[r.key]
-      const label = `🔒 ${lensText(lock, r.waiting, now).replace("Locked by ", "")}${r.waiting.length ? ` · waiting: ${r.waiting.map(w => w.label).join(", ")}` : ""}`
+      const label = `🔒 ${r.holder.label}${r.waiting.length ? ` · waiting: ${r.waiting.map(w => w.label).join(", ")}` : ""}`
       const range = new vscode.Range(r.start - 1, 0, r.end - 1, 0)
       locks.set(color, [...(locks.get(color) ?? []), { range, hoverMessage: `${r.name} is locked by ${r.holder.label}` }])
-      locks.set(`${color}-label`, [...(locks.get(`${color}-label`) ?? []), { range: new vscode.Range(r.start - 1, 0, r.start - 1, 0), renderOptions: { after: { contentText: `  ${label}` } } }])
+      const eol = editor.document.lineAt(r.start - 1).range.end
+      locks.set(`${color}-label`, [...(locks.get(`${color}-label`) ?? []), { range: new vscode.Range(eol, eol), renderOptions: { after: { contentText: `   ${label}` } } }])
     }
     for (const c of cursorsInFile(state, file, now)) {
       const line = Math.min(c.line, editor.document.lineCount) - 1
       const color = hex(c.agent)
-      cursors.set(color, [...(cursors.get(color) ?? []), { range: new vscode.Range(line, 0, line, 0), renderOptions: { after: { contentText: `  ◀ ${c.agent.label} · ${c.mode === "edit" ? "editing" : "reading"}` } } }])
+      const eol = editor.document.lineAt(line).range.end
+      cursors.set(color, [...(cursors.get(color) ?? []), { range: new vscode.Range(eol, eol), renderOptions: { after: { contentText: `   ◀ ${c.agent.label} · ${c.mode === "edit" ? "editing" : "reading"}` } } }])
     }
   }
   for (const color of Object.values(COLOR_HEX).concat("#888780")) {
