@@ -29,12 +29,38 @@ const routes: Record<string, (b: Body) => Promise<{ value: unknown; events?: FEv
 export function startServer({ port = Number(process.env.FOREMAN_PORT ?? 7300), onEvents, hot }: ServerOptions = {}) {
   // Relay is slow (seconds per post): deliver events in the background, one batch after another
   let outbox = Promise.resolve()
-  return Bun.serve({
+  return Bun.serve<{ upstream: string; socket?: WebSocket; queue: (string | Buffer)[] }>({
     port,
     hostname: "0.0.0.0",
-    async fetch(req) {
+    // /live relays the room's Terse socket, so editors only ever need to reach this server (Terse stays on localhost)
+    websocket: {
+      open(ws) {
+        const up = new WebSocket(ws.data.upstream)
+        ws.data.socket = up
+        up.onopen = () => ws.data.queue.splice(0).forEach(m => up.send(m))
+        up.onmessage = e => ws.send(String(e.data))
+        up.onclose = () => ws.close()
+        up.onerror = () => ws.close()
+      },
+      message(ws, msg) {
+        const up = ws.data.socket
+        if (up?.readyState === WebSocket.OPEN) up.send(msg)
+        else ws.data.queue.push(msg)
+      },
+      close(ws) {
+        ws.data.socket?.close()
+      },
+    },
+    async fetch(req, srv) {
       const { pathname } = new URL(req.url)
       if (pathname === "/api/health") return new Response("ok")
+      if (pathname === "/live") {
+        const actorId = new URL(req.url).searchParams.get("repo")
+        if (!actorId) return new Response("repo required", { status: 400 })
+        // ponytail: anyone who can reach the server can watch a room; add a room key check before hosting publicly
+        const { websocketUrl } = await actors.RepoActor.prepareWebsocket({ actorId, metadata: {} })
+        return srv.upgrade(req, { data: { upstream: websocketUrl, queue: [] } }) ? undefined : new Response("upgrade failed", { status: 400 })
+      }
       if (pathname === "/grant") {
         const actorId = new URL(req.url).searchParams.get("repo")
         if (!actorId) return new Response("repo required", { status: 400 })

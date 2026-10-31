@@ -110,3 +110,26 @@ test("pulled clears caller warnings for a commit", async () => {
   await post("/api/pulled", { repoId: room, head: "s1", shas: ["s1"] })
   expect((await post("/api/status", { repoId: room })).changes).toEqual({})
 })
+
+test("/live relays the room's live state through the Foreman server (Terse stays private)", async () => {
+  const room = `test-${crypto.randomUUID().slice(0, 8)}`
+  await post("/api/claim", { repoId: room, agent: A, keys: [V] })
+  const ws = new WebSocket(new URL(`/live?repo=${room}`, server.url.href.replace("http", "ws")))
+  const msgs: any[] = []
+  const got = (pred: (m: any) => boolean) =>
+    new Promise<any>(res => {
+      const hit = msgs.find(pred)
+      if (hit) return res(hit)
+      ws.addEventListener("message", e => {
+        const m = JSON.parse(String(e.data))
+        if (pred(m)) res(m)
+      })
+    })
+  ws.addEventListener("message", e => msgs.push(JSON.parse(String(e.data))))
+  const first = await got(m => m.type === "state")
+  expect(first.state.state.locks[V].holder.id).toBe(A.id)
+  const update = got(m => m.type === "state_update")
+  await post("/api/revoke", { repoId: room, key: V })
+  expect((await update).changes.state.locks).toEqual({})
+  ws.close()
+})

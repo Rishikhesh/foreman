@@ -1,18 +1,17 @@
 // Full Foreman flow with two fake agents driving the real hooks and git, so both VS Code windows show it live:
 // lock → edit → blocked → caller warning → commit → handoff with automatic merge → finish → every colour clears.
-// Usage: bun demo/simulate.ts [demoDir]   (default ~/personal/foreman-demo)
+// Usage: bun demo/simulate.ts   (after `bun demo/setup.ts`; only the .demo worktrees are touched)
 import { readFileSync, writeFileSync } from "node:fs"
-import os from "node:os"
 import path from "node:path"
 import { $ } from "bun"
 
-const demo = process.argv[2] ?? path.join(os.homedir(), "personal/foreman-demo")
+const demo = path.join(import.meta.dir, "..", ".demo")
 const CLI = path.join(import.meta.dir, "..", "cli", "foreman.ts")
 const PAUSE_MS = Number(process.env.DEMO_PAUSE_MS ?? 3500)
 type Who = { name: string; dir: string; session: string }
 const blue: Who = { name: "blue (rishi)", dir: path.join(demo, "rishi"), session: `sim-rishi-${Date.now()}` }
 const orange: Who = { name: "orange (friend)", dir: path.join(demo, "friend"), session: `sim-friend-${Date.now()}` }
-const authFile = (w: Who) => path.join(w.dir, "src/auth.ts")
+const authFile = (w: Who) => path.join(w.dir, "demo/sample/src/auth.ts")
 
 async function hook(w: Who, sub: string, tool: string, input: Record<string, unknown>) {
   const p = Bun.spawn(["bun", CLI, "hook", sub], {
@@ -46,12 +45,12 @@ async function edit(w: Who, oldText: string, newText: string) {
 const commit = (w: Who, msg: string) => $`git -C ${w.dir} commit -qam ${msg}`.quiet().nothrow()
 
 // ---------- fresh start: empty room, both worktrees on the first demo commit ----------
-const cfg = JSON.parse(readFileSync(path.join(blue.dir, ".git/foreman.json"), "utf8"))
+const cfg = JSON.parse(readFileSync((await $`git -C ${blue.dir} rev-parse --path-format=absolute --git-path foreman.json`.text()).trim(), "utf8"))
 const api = (route: string, body: object) => fetch(`${cfg.url}${route}`, { method: "POST", body: JSON.stringify({ repoId: cfg.repoId, ...body }) }).then(r => r.json())
 for (const agent of Object.values((await api("/api/status", {})).members ?? {})) await api("/api/release-all", { agent })
-const base = (await $`git -C ${blue.dir} rev-list --max-parents=0 HEAD`.text()).trim()
+const base = readFileSync(path.join(demo, "base"), "utf8").trim()
 for (const w of [blue, orange]) await $`git -C ${w.dir} reset -q --hard ${base}`.quiet()
-console.log(`Room cleared, both worktrees reset to ${base.slice(0, 7)}. Open src/auth.ts in both windows.`)
+console.log(`Room cleared, both demo worktrees reset to ${base.slice(0, 7)}. Open demo/sample/src/auth.ts in both windows.`)
 
 await step("1. Both agents open auth.ts (cursors appear)")
 await hook(blue, "pre-tool", "Read", { file_path: authFile(blue), offset: 3 })

@@ -5,3 +5,4 @@ generated
 .DS_Store
 .DS_Store
 .foreman-relay.json
+.demo/

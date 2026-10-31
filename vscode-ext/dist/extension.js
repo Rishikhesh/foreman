@@ -168952,8 +168952,7 @@ async function connect() {
   try {
     if (typeof WebSocket === "undefined")
       throw new Error("no WebSocket");
-    const { websocketUrl } = await (await fetch(`${config.url}/grant?repo=${config.repoId}`)).json();
-    const ws = new WebSocket(websocketUrl);
+    const ws = new WebSocket(`${config.url.replace(/^http/, "ws")}/live?repo=${config.repoId}`);
     socket = ws;
     ws.onmessage = (e) => {
       const m = JSON.parse(String(e.data));
